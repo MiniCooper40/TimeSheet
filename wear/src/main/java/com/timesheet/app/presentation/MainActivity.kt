@@ -50,8 +50,7 @@ import androidx.wear.compose.material.Chip
 import androidx.wear.compose.material.ChipDefaults
 import androidx.wear.compose.material.MaterialTheme
 import androidx.wear.compose.material.Text
-import com.timesheet.app.R
-import com.timesheet.app.presentation.data.db.TimeSheetDatabase
+import com.app.timesheet.R
 import com.timesheet.app.presentation.data.model.TimeTracker
 import com.timesheet.app.presentation.theme.TimeSheetTheme
 import com.timesheet.app.presentation.view.MyApplication

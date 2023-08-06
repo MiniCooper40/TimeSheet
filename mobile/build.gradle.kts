@@ -1,25 +1,23 @@
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
-    id("com.google.devtools.ksp") version "1.8.10-1.0.9"
 }
 
 android {
-    namespace = "com.timesheet.app"
+    namespace = "com.app.timesheet"
     compileSdk = 33
 
-    buildFeatures{
-        compose = true
-    }
-
     defaultConfig {
-        applicationId = "com.timesheet.app"
+        applicationId = "com.app.timesheet"
         minSdk = 30
         targetSdk = 33
         versionCode = 1
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
+    composeOptions {
+        kotlinCompilerExtensionVersion = "1.4.8"
     }
 
     buildTypes {
@@ -32,43 +30,38 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
 
-    composeOptions {
-        kotlinCompilerExtensionVersion = "1.4.8"
+    buildFeatures {
+        compose = true
     }
 
     kotlinOptions {
-        jvmTarget = "1.8"
+        jvmTarget = "17"
     }
 }
 
 dependencies {
+    implementation("androidx.core:core-ktx:1.9.0")
+    implementation("androidx.appcompat:appcompat:1.6.1")
+    implementation("com.google.android.gms:play-services-wearable:18.0.0")
+    implementation("com.google.android.material:material:1.9.0")
+    implementation("androidx.constraintlayout:constraintlayout:2.1.4")
+    testImplementation("junit:junit:4.13.2")
+    androidTestImplementation("androidx.test.ext:junit:1.1.5")
+    androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
 
-    val compose_version = "1.4.3"
-    val material_version = "1.4.0"
+    val composeBom = platform("androidx.compose:compose-bom:2023.06.01")
+    implementation(composeBom)
+    androidTestImplementation(composeBom)
+    implementation("androidx.compose.material:material")
 
-    implementation("androidx.compose.animation:animation-core:$compose_version")
-    implementation("androidx.compose.animation:animation:$compose_version")
-    implementation("androidx.compose.ui:ui:$compose_version")
-    implementation("androidx.compose.foundation:foundation:$compose_version")
-    implementation("androidx.compose.ui:ui-geometry:$compose_version")
-    implementation("androidx.compose.ui:ui-graphics:$compose_version")
-    implementation("androidx.compose.foundation:foundation-layout:$compose_version")
-    implementation("androidx.compose.runtime:runtime-livedata:$compose_version")
-    implementation("androidx.compose.material:material:$material_version")
-    implementation("androidx.compose.material:material-icons-core:$material_version")
-    implementation("androidx.compose.material:material-icons-extended:$material_version")
-    implementation("androidx.compose.runtime:runtime-rxjava2:$compose_version")
-    implementation("androidx.compose.ui:ui-text:$compose_version")
-    implementation("androidx.compose.ui:ui-util:$compose_version")
-    implementation("androidx.compose.ui:ui-viewbinding:$compose_version")
-    implementation("androidx.compose.ui:ui-tooling:$compose_version")
-    implementation("androidx.activity:activity-compose:1.3.1")
-    implementation ("androidx.compose.material3:material3:1.1.1")
-    implementation ("androidx.compose.material3:material3-window-size-class:1.1.1")
+    val activity_version = "1.7.2"
+    // Kotlin
+    implementation ("androidx.activity:activity-ktx:$activity_version")
+    implementation ("androidx.activity:activity-compose:1.7.2")
 
     wearApp(project(":wear"))
 }
