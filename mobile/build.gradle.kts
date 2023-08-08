@@ -1,6 +1,7 @@
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
+    id("com.google.devtools.ksp")
 }
 
 android {
@@ -62,6 +63,18 @@ dependencies {
     // Kotlin
     implementation ("androidx.activity:activity-ktx:$activity_version")
     implementation ("androidx.activity:activity-compose:1.7.2")
+
+    val room_version = "2.5.2"
+
+    implementation("androidx.room:room-runtime:$room_version")
+    annotationProcessor("androidx.room:room-compiler:$room_version")
+
+    implementation("androidx.room:room-ktx:$room_version")
+    ksp("androidx.room:room-compiler:$room_version")
+
+    val nav_version = "2.6.0"
+
+    implementation("androidx.navigation:navigation-compose:$nav_version")
 
     wearApp(project(":wear"))
 }

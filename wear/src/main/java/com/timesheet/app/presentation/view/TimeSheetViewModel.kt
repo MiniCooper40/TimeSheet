@@ -1,6 +1,7 @@
 package com.timesheet.app.presentation.view
 
 import android.content.Context
+import android.os.Looper
 import android.util.Log
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -14,7 +15,11 @@ import com.google.android.gms.wearable.CapabilityClient
 import com.google.android.gms.wearable.CapabilityClient.OnCapabilityChangedListener
 import com.google.android.gms.wearable.CapabilityInfo
 import com.google.android.gms.wearable.DataClient.OnDataChangedListener
+import com.google.android.gms.wearable.DataEvent
 import com.google.android.gms.wearable.DataEventBuffer
+import com.google.android.gms.wearable.DataMapItem
+import com.google.android.gms.wearable.PutDataMapRequest
+import com.google.android.gms.wearable.Wearable
 import com.google.android.gms.wearable.WearableListenerService
 import com.timesheet.app.presentation.data.dao.TimeTrackerDao
 import com.timesheet.app.presentation.data.db.TimeSheetDatabase
@@ -33,7 +38,7 @@ import kotlinx.coroutines.launch
 
 class TimeSheetViewModel(
     val dao: TimeTrackerDao
-): ViewModel() {
+): ViewModel(), OnDataChangedListener{
 
     private val _timeSheetState = MutableStateFlow(TimeSheetUiState(listOf()))
 
@@ -49,11 +54,24 @@ class TimeSheetViewModel(
         }
     }
 
-    fun updateTrackerStartTime(updatedTracker: TimeTracker) {
+    fun updateTrackerStartTime(context: Context, updatedTracker: TimeTracker) {
         Log.v("tracker", updatedTracker.toString())
         val newStartTime = if(updatedTracker.startTime == 0L) System.currentTimeMillis() else 0L
+        val endTime = if(updatedTracker.startTime == 0L) 0L else System.currentTimeMillis()
         viewModelScope.launch {
             dao.update(timeTracker = updatedTracker.copy(startTime = newStartTime))
+
+            val putDataMapRequest = PutDataMapRequest.create("/tracked/create")
+
+            val dataMap = putDataMapRequest.dataMap
+
+            dataMap.putLong("startTime", newStartTime)
+            dataMap.putLong("endTime", endTime)
+            dataMap.putInt("uid", updatedTracker.uid)
+
+            val dataRequest = putDataMapRequest.asPutDataRequest()
+
+            Wearable.getDataClient(context).putDataItem(dataRequest)
         }
         updateTimeSheetState()
     }
@@ -74,5 +92,9 @@ class TimeSheetViewModel(
                 return TimeSheetViewModel((application as MyApplication).timeSheetDao) as T
             }
         }
+    }
+
+    override fun onDataChanged(dataEventBuffer: DataEventBuffer) {
+        updateTimeSheetState()
     }
 }

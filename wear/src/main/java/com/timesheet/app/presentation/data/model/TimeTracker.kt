@@ -6,7 +6,7 @@ import androidx.room.PrimaryKey
 
 @Entity(tableName = "time_trackers")
 data class TimeTracker(
-    @PrimaryKey(autoGenerate = true) val uid: Int = 0,
+    @PrimaryKey val uid: Int,
     @ColumnInfo("startTime") var startTime: Long?,
     @ColumnInfo("title") var title: String
 )

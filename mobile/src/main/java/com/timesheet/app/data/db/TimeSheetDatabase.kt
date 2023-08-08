@@ -1,16 +1,22 @@
-package com.timesheet.app.presentation.data.db
+package com.timesheet.app.data.db
 
 import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
-import com.timesheet.app.presentation.data.dao.TimeTrackerDao
-import com.timesheet.app.presentation.data.model.TimeTracker
+import com.timesheet.app.data.dao.TimeTrackerDao
+import com.timesheet.app.data.dao.TrackedTimeDao
+import com.timesheet.app.data.dao.TrackedTimesDao
+import com.timesheet.app.data.model.TimeTracker
+import com.timesheet.app.data.model.TrackedTime
+import com.timesheet.app.data.model.TrackedTimes
 
-@Database(entities = arrayOf(TimeTracker::class), version = 13)
-public abstract class TimeSheetDatabase: RoomDatabase() {
+@Database(entities = arrayOf(TimeTracker::class, TrackedTime::class), version=12)
+abstract class TimeSheetDatabase: RoomDatabase() {
 
     abstract fun timeTrackerDao(): TimeTrackerDao
+    abstract fun trackedTimeDao(): TrackedTimeDao
+    abstract fun trackedTimesDao(): TrackedTimesDao
 
     companion object {
         @Volatile
@@ -21,7 +27,7 @@ public abstract class TimeSheetDatabase: RoomDatabase() {
                 val instance = Room.databaseBuilder(
                     context.applicationContext,
                     TimeSheetDatabase::class.java,
-                    "word_database"
+                    "time_sheet_db"
                 )
                     .fallbackToDestructiveMigration()
                     .build()
