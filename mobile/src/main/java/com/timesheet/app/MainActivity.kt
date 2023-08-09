@@ -9,23 +9,42 @@ import androidx.activity.viewModels
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.BottomAppBar
+import androidx.compose.material.BottomNavigation
+import androidx.compose.material.BottomNavigationItem
 import androidx.compose.material.Button
+import androidx.compose.material.FloatingActionButton
+import androidx.compose.material.Icon
 import androidx.compose.material.MaterialTheme
+import androidx.compose.material.Scaffold
 import androidx.compose.material.Text
 import androidx.compose.material.TextField
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.List
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
+import androidx.navigation.NavDestination.Companion.hierarchy
+import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.google.android.gms.tasks.Task
@@ -36,6 +55,11 @@ import com.google.android.gms.wearable.Wearable
 import com.timesheet.app.data.model.TimeTracker
 import com.timesheet.app.data.model.TrackedTime
 import com.timesheet.app.data.model.TrackedTimes
+import com.timesheet.app.presentation.theme.TimeSheetTheme
+import com.timesheet.app.ui.BottomBar
+import com.timesheet.app.ui.DisplayTrackers
+import com.timesheet.app.ui.HomePage
+import com.timesheet.app.ui.TrackerForm
 import com.timesheet.app.view.TimeSheetViewModel
 import com.timesheet.app.view.TimeTrackerViewModel
 import java.util.Date
@@ -48,177 +72,210 @@ class MainActivity : ComponentActivity() {
 
         val timeSheetViewModel: TimeSheetViewModel by viewModels { TimeSheetViewModel.Factory }
 
-
-
         setContent {
-            val navController = rememberNavController()
-
-            NavHost(navController = navController, startDestination = "start") {
-                composable("start") { TrackerForm(applicationContext, timeSheetViewModel, navController) }
-                composable("tracker/{uid}", arguments = listOf(navArgument("uid") { type = NavType.IntType })) {
-                    it.arguments?.getInt("uid")?.let { uid ->
-                        TrackerDetails(
-                            context = applicationContext,
-                            timeSheetViewModel,
-                            uid = uid
-                        )
-                    }
-                }
+            TimeSheetTheme {
+                MainApp(timeSheetViewModel)
             }
         }
     }
 }
 
-@Composable
-fun MainApp(context: Context, timeSheetViewModel: TimeSheetViewModel) {
-
-
+fun fillTimeStampZeros(time: Int): String {
+    return if (time < 10) "0${time}" else time.toString()
 }
 
-fun navigateToTracker(uid: Int) {
+fun toTimeStamp(milliseconds: Long?): String {
 
-}
-
-fun fillTimeStampZeros(time: Int) : String {
-    return if(time < 10) "0${time}" else time.toString()
-}
-
-fun toTimeStamp(milliseconds: Long?) : String {
-
-    if(milliseconds == null) return "0"
+    if (milliseconds == null) return "0"
 
     val seconds = (milliseconds / 1000).toInt() % 60
     val minutes = (milliseconds / (1000 * 60) % 60).toInt()
     val hours = (milliseconds / (1000 * 60 * 60) % 24).toInt()
 
-    return "${fillTimeStampZeros(hours)}:${fillTimeStampZeros(minutes)}:${fillTimeStampZeros(seconds)}"
+    return "${fillTimeStampZeros(hours)}:${fillTimeStampZeros(minutes)}:${
+        fillTimeStampZeros(
+            seconds
+        )
+    }"
 }
 
 
 @Composable
-fun TrackerDetails(context: Context, timeSheetViewModel: TimeSheetViewModel, uid: Int) {
-
+fun TrackerDetails(timeSheetViewModel: TimeSheetViewModel, uid: Int) {
 
     val state by timeSheetViewModel.trackedTimesFor(uid).collectAsState(null)
 
     state?.let {
-        Column {
-            Text(it.timeTracker.title)
-            it.trackedTimes.map { TrackedTime(it) }
-        }
-    }
-}
-
-@Composable
-fun TrackedTime(trackedTime: TrackedTime) {
-    val elapsedTime = trackedTime.let { toTimeStamp(it.endTime - it.startTime) }
-    val startDate = Date(trackedTime.startTime)
-
-    Row {
-        Text(elapsedTime)
-        Text(startDate.toString())
-    }
-}
-
-@Composable
-fun TrackerForm(
-    context: Context,
-    timeSheetViewModel: TimeSheetViewModel,
-    navController: NavHostController
-) {
-    
-    var title by remember{ mutableStateOf("") }
-    
-    Column {
-        TextField(value = title, onValueChange = {title = it})
-        Button(
-            onClick = {
-                val tracker = TimeTracker(title=title)
-                timeSheetViewModel.createTracker(context, tracker)
-//                testData(context, tracker)
-                title = ""
-            }
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text("Create")
+            Text(it.timeTracker.title)
+            it.trackedTimes.map {
+                Text(toTimeStamp(it.endTime-it.startTime))
+            }
         }
-        TrackerDisplay(timeSheetViewModel = timeSheetViewModel, navController)
     }
 }
 
 @Composable
-fun TrackerDisplay(timeSheetViewModel: TimeSheetViewModel, navController: NavHostController) {
-    val state by timeSheetViewModel.timeTrackers.collectAsState()
-    
-    Column(
-        modifier = Modifier.verticalScroll(rememberScrollState())
+fun MainApp(timeSheetViewModel: TimeSheetViewModel) {
+
+    val navController = rememberNavController()
+
+    Scaffold(
+        bottomBar = {
+            BottomAppBar {
+                val navBackStackEntry by navController.currentBackStackEntryAsState()
+                val currentDestination = navBackStackEntry?.destination
+                BottomNavigationItem(
+                    selected = currentDestination?.hierarchy?.any { it.route == "home" } == true,
+                    onClick = {
+                        navController.navigate("home") {
+                            popUpTo(navController.graph.findStartDestination().id) {
+                                saveState = true
+                            }
+
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    },
+                    icon = {
+                        Icon(Icons.Default.Home, "Home button")
+                    }
+                )
+
+                FloatingActionButton(onClick = {
+                    navController.navigate("create") {
+                        popUpTo(navController.graph.findStartDestination().id) {
+                            saveState = true
+                        }
+
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                }) {
+                  Icon(Icons.Default.Add, "Add button")
+                }
+
+                BottomNavigationItem(
+                    selected = currentDestination?.hierarchy?.any { it.route == "list" } == true,
+                    onClick = {
+                        navController.navigate("list") {
+                            popUpTo(navController.graph.findStartDestination().id) {
+                                saveState = true
+                            }
+
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    },
+                    icon = {
+                        Icon(Icons.Default.List, "List button")
+                    }
+                )
+            }
+        }
     ) {
-        state.trackers.map { 
-            Button(
-                onClick = { navController.navigate("tracker/" + it.uid) }
-            ) {
-                Text(it.title)
+        NavHost(navController, startDestination = "home", Modifier.padding(it)) {
+            composable("home") { Text("Home") }
+            composable("list") { DisplayTrackers(timeSheetViewModel = timeSheetViewModel, navController = navController) }
+            composable("create") { TrackerForm(timeSheetViewModel = timeSheetViewModel) }
+            composable("tracker/{uid}", arguments = listOf(navArgument("uid") { type = NavType.IntType })) {
+                it.arguments?.getInt("uid")?.let { uid ->
+                    TrackerDetails(
+                        timeSheetViewModel,
+                        uid = uid
+                    )
+                }
             }
+        }
+    }
+
+    @Composable
+    fun TT(trackedTime: TrackedTime) {
+        val elapsedTime = trackedTime.let { toTimeStamp(it.endTime - it.startTime) }
+        val startDate = Date(trackedTime.startTime)
+
+        Row {
+            Text(elapsedTime)
+            Text(startDate.toString())
+        }
+    }
+
+    fun testData(context: Context, tracker: TimeTracker) {
+
+
+        Thread {
+            val putDataMapRequest = PutDataMapRequest.create("/tracker/create")
+
+            val dataMap = putDataMapRequest.dataMap
+
+            dataMap.putLong("created", System.currentTimeMillis())
+            dataMap.putString("title", tracker.title)
+            dataMap.putLong("startTime", tracker.startTime)
+            dataMap.putInt("uid", tracker.uid)
+
+            val dataRequest = putDataMapRequest.asPutDataRequest()
+
+            Wearable.getDataClient(context).putDataItem(putDataMapRequest.asPutDataRequest())
+        }.start()
+    }
+
+    fun testCommunication(context: Context) {
+        Log.v("MOBILE", "Clicked test")
+
+        Thread {
+            val nodeListTask: Task<List<Node>> =
+                Wearable.getNodeClient(context).connectedNodes
+
+            val nodes = Tasks.await(nodeListTask)
+            for (node in nodes) {
+                // Build the message
+                // Build the message
+                val message = "Hello!"
+                val payload = message.toByteArray()
+
+                // Send the message
+
+                // Send the message
+                val sendMessageTask = Wearable.getMessageClient(context)
+                    .sendMessage(node.id, "/message", payload)
+
+                sendMessageTask.addOnSuccessListener {
+                    Log.v("TASK", "Success")
+                }
+                sendMessageTask.addOnCanceledListener {
+                    Log.v("TASK", "Cancelled")
+                }
+                sendMessageTask.addOnFailureListener {
+                    Log.v("TASK", "Failure")
+                }
+
+            }
+        }.start()
+    }
+
+    @Composable
+    fun WearApp(greetingName: String) {
+
+        MaterialTheme {
+            Text(greetingName)
         }
     }
 }
 
-fun testData(context: Context, tracker: TimeTracker) {
-
-
-    Thread {
-        val putDataMapRequest = PutDataMapRequest.create("/tracker/create")
-
-        val dataMap = putDataMapRequest.dataMap
-
-        dataMap.putLong("created", System.currentTimeMillis())
-        dataMap.putString("title", tracker.title)
-        dataMap.putLong("startTime", tracker.startTime)
-        dataMap.putInt("uid", tracker.uid)
-
-        val dataRequest = putDataMapRequest.asPutDataRequest()
-
-        Wearable.getDataClient(context).putDataItem(putDataMapRequest.asPutDataRequest())
-    }.start()
-}
-
-fun testCommunication(context: Context) {
-    Log.v("MOBILE", "Clicked test")
-
-    Thread {
-        val nodeListTask: Task<List<Node>> =
-            Wearable.getNodeClient(context).connectedNodes
-
-        val nodes = Tasks.await(nodeListTask)
-        for(node in nodes) {
-            // Build the message
-            // Build the message
-            val message = "Hello!"
-            val payload = message.toByteArray()
-
-            // Send the message
-
-            // Send the message
-            val sendMessageTask = Wearable.getMessageClient(context)
-                .sendMessage(node.id, "/message", payload)
-
-            sendMessageTask.addOnSuccessListener {
-                Log.v("TASK", "Success")
-            }
-            sendMessageTask.addOnCanceledListener {
-                Log.v("TASK", "Cancelled")
-            }
-            sendMessageTask.addOnFailureListener {
-                Log.v("TASK", "Failure")
-            }
-
-        }
-    }.start()
-}
-
-@Composable
-fun WearApp(greetingName: String) {
-
-    MaterialTheme {
-        Text(greetingName)
-    }
-}
+//@Composable
+//fun TrackerDetails(timeSheetViewModel: TimeSheetViewModel, uid: Int) {
+//
+//    val state by timeSheetViewModel.trackedTimesFor(uid).collectAsState(initial = null)
+//
+//    state?.let {
+//        Text(it.timeTracker.title)
+//        it.trackedTimes.map {
+//            Row {
+//                Text(timeSta)
+//            }
+//        }
+//    }
+//
+//}
