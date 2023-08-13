@@ -9,20 +9,19 @@ import androidx.lifecycle.createSavedStateHandle
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.CreationExtras
 import com.patrykandpatrick.vico.core.entry.ChartEntryModelProducer
+import com.patrykandpatrick.vico.core.entry.composed.ComposedChartEntryModelProducer
+import com.patrykandpatrick.vico.core.entry.composed.plus
 import com.patrykandpatrick.vico.core.entry.entriesOf
 import com.timesheet.app.data.dao.TimeTrackerDao
 import com.timesheet.app.data.dao.TrackedTimeDao
-import com.timesheet.app.data.dao.TrackedTimesDao
 import com.timesheet.app.data.model.TimeTracker
 import com.timesheet.app.data.model.TrackedTime
-import com.timesheet.app.data.model.TrackedTimes
 import com.timesheet.app.ui.Day
 import com.timesheet.app.ui.millisecondsInDay
+import com.timesheet.app.ui.toCompressedTimeStamp
 import com.timesheet.app.view.model.TimeTrackerUiState
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import java.time.Duration
@@ -30,9 +29,15 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
 
+data class WeeklyComparison(
+    var timeLastWeek: Long,
+    var timeThisWeek: Long,
+    val weeklyChartEntryModelProducer: ChartEntryModelProducer
+)
+
 class TimeTrackerViewModel(
-    val timeTrackerDao: TimeTrackerDao,
-    val trackedTimeDao: TrackedTimeDao,
+    var timeTrackerDao: TimeTrackerDao,
+    var trackedTimeDao: TrackedTimeDao,
     val uid: Int
 ): ViewModel() {
 
@@ -43,9 +48,15 @@ class TimeTrackerViewModel(
     internal var weeklyDurations: List<Pair<Int, Duration>> = listOf()
 
 
+    internal val weeklyComparison = WeeklyComparison(0L,0L,weeklyChartEntryModelProducer)
+
     init {
         updateState()
         dailyTimesInPastWeek()
+    }
+
+    fun updateWeeklyTimes() {
+
     }
 
     fun updateState() {
@@ -54,12 +65,42 @@ class TimeTrackerViewModel(
                 timeTrackerDao.getTrackedTimesByUid(uid)
             )
 
-            val list = weeklyDurations.map { it.second.toMillis() }.toTypedArray()
-            weeklyChartEntryModelProducer.setEntries(
-                entriesOf(*list)
-            )
+//            val list = weeklyDurations.map { it.second.toMillis() }.toTypedArray()
+
+            val currentTime = LocalDate.now().plusDays(5)
+            dailyTimesInTimeRange(currentTime.minusDays(14), currentTime.minusDays(7)) { pastWeek ->
+                dailyTimesInTimeRange(currentTime.minusDays(6), currentTime.plusDays(1)) { currentWeek ->
+                    val currentList = currentWeek.map{ it.second.toMillis() }.toTypedArray()
+                    val pastList = pastWeek.map{ it.second.toMillis() }.toTypedArray()
+
+                    weeklyChartEntryModelProducer.setEntries(
+                        entriesOf(*pastList), entriesOf(*currentList)
+                    )
+
+                    weeklyComparison.timeLastWeek = pastList.sum()
+                    weeklyComparison.timeThisWeek = currentList.sum()
+                }
+            }
+
+
+//            weeklyChartEntryModelProducer.setEntries(
+//                entriesOf(*list)
+//            )
+
         }
     }
+
+//    fun updateWeeklyCharts() {
+//        val thisWeeksDurationArray = thisWeeksDurations.map { it.second.toMillis() }.toTypedArray()
+//        thisWeeksChartEntryProducer.setEntries(
+//            entriesOf(*thisWeeksDurationArray)
+//        )
+//
+//        val pastWeeksDurationArray = thisWeeksDurations.map { it.second.toMillis() }.toTypedArray()
+//        pastWeeksChartEntryProducer.setEntries(
+//            entriesOf(*pastWeeksDurationArray)
+//        )
+//    }
 
     fun updateTrackerStartTime(context: Context, updatedTracker: TimeTracker) {
         Log.v("tracker", updatedTracker.toString())
@@ -84,13 +125,14 @@ class TimeTrackerViewModel(
 
                 if(newStartTime == 0L) {
 
-//                    if(!weeklyDurations.isEmpty()) weeklyDurations.last().second.plusMillis(endTime-updatedTracker.startTime)
-//                    val list = weeklyDurations.map { it.second.toMillis() }.toTypedArray()
-//
+                    if(!weeklyDurations.isEmpty()) weeklyDurations.last().second.plusMillis(endTime-updatedTracker.startTime)
+                    val list = weeklyDurations.map { it.second.toMillis() }.toTypedArray()
+
 //                    weeklyChartEntryModelProducer.setEntries(
 //                        entriesOf(*list)
 //                    )
-                    dailyTimesInPastWeek()
+
+
 
 
                     val trackedTime = TrackedTime(
@@ -109,26 +151,138 @@ class TimeTrackerViewModel(
             }
         }
     }
+    fun dailyTimesInTimeRange(startDate:LocalDate, endDate: LocalDate, onDetermined: (List<Pair<Int, Duration>>) -> Unit) {
+
+        viewModelScope.launch {
+            val durationPairs = mutableListOf<Pair<Int, Duration>>()
+
+            Log.v("start", startDate.toString())
+            Log.v("end", endDate.toString())
+
+            runBlocking {
+
+                val trackedTimes = timeTrackerDao.getTrackedTimesByUid(uid)
+                val days = Duration.between(startDate.atStartOfDay(), endDate.atStartOfDay()).toDays()
+                Log.v("days between", "days between = $days")
+
+                val endDateTime = endDate.atStartOfDay()
+                val startDateTime = startDate.atStartOfDay()
+
+                val startOfDayInstant = endDateTime.toInstant(ZoneOffset.UTC)
+                var earliestTimeInstant = startDateTime.toInstant(ZoneOffset.UTC)
+
+                val trackedInLastWeek =
+                    trackedTimes.trackedTimes.filter { it.endTime > earliestTimeInstant.toEpochMilli() && it.startTime != 0L }
+                val zeroStartTimes = trackedTimes.trackedTimes.filter { it.startTime == 0L }
+
+                val times = mutableListOf<Day>()
+                for (i in 1..days) {
+                    val day = Day(
+                        startTime = earliestTimeInstant.toEpochMilli(),
+                        endTime = earliestTimeInstant.toEpochMilli() + millisecondsInDay
+                    )
+                    times.add(day)
+                    earliestTimeInstant = earliestTimeInstant.plusMillis(millisecondsInDay)
+                }
+
+//    Log.v("times", times.toString())
+//    Log.v("zeroStartTimes", zeroStartTimes.toString())
+
+                val durations = times.map { Duration.ZERO }.toMutableList()
+
+                trackedInLastWeek.forEachIndexed { _, tracked ->
+                    var start = tracked.startTime
+                    var end = tracked.endTime
+
+                    var startInstant = Instant.ofEpochMilli(start)
+                    var endInstant = Instant.ofEpochMilli(end)
+//        Log.v("startInstant", startInstant.toString())
+//        Log.v("endInstant", endInstant.toString())
+
+//        Log.v("start", start.toString())
+//        Log.v("end", end.toString())
+
+                    times.forEachIndexed { dayIndex, day ->
+                        val initial = start.coerceAtLeast(day.startTime)
+                        val final = end.coerceAtMost(day.endTime)
+
+                        var dayStartInstant = Instant.ofEpochMilli(day.startTime)
+                        var dayEndInstant = Instant.ofEpochMilli(day.endTime)
+//            Log.v("dayStartInstant", dayStartInstant.toString())
+//            Log.v("dayEndInstant", dayEndInstant.toString())
+
+//            Log.v("day start", day.startTime.toString())
+//            Log.v("day end", day.endTime.toString())
+
+                        if (start >= day.startTime && end <= day.endTime) {
+                            //Log.v("1", (end-start).toString())
+                            durations[dayIndex] = durations[dayIndex].plusMillis(end - start)
+                        } else if (start >= day.startTime && start <= day.endTime && end >= day.endTime) {
+                            //Log.v("2", (end-start).toString())
+                            durations[dayIndex] = durations[dayIndex].plusMillis(final - start)
+                        } else if (start <= day.startTime && end <= day.endTime && end >= day.startTime) {
+//                Log.v("3", (end-day.startTime).toString())
+                            durations[dayIndex] = durations[dayIndex].plusMillis(end - day.startTime)
+                        } else if (start <= day.startTime && end >= day.endTime) {
+                            Log.v("4", (day.endTime - day.startTime).toString())
+                            durations[dayIndex] =
+                                durations[dayIndex].plusMillis(day.endTime - day.startTime)
+                            //            }
+                        }
+                    }
+
+//    Log.v("earliest day", earliestDay.toString())
+
+//    Log.v("pairs", durationPairs.toString())
+//                    Thread.sleep(1000L)
+//                    Log.v("emited", "emited")
+
+                }
+                val durationSum = durations.sumOf { it.toMillis() }
+                val timeSum = trackedInLastWeek.sumOf { it.endTime - it.startTime }
+
+//    Log.v("durationSum", durationSum.toString() + ", " + (durationSum/60000).toString())
+//    Log.v("timeSum", timeSum.toString() + ", " + (timeSum/60000).toString())
+
+                val durationsString = durations.map { it.toMinutes().toString() }
+
+//    Log.v("DURATIONS",durations.toString())
+
+                var startDay = startDateTime.dayOfWeek.value
+
+                durations.forEach {
+//                        durationPairs.add(
+//                            (if (startDay > 7) startDay - 7 else startDay) to it
+//                        )
+                    val day = if (startDay > 7) startDay - 7 else startDay
+                    durationPairs.add(day to it)
+//                        durationMap.put(
+//                            day,
+//                            durationMap.get(day)?.plus(it) ?: it
+//                        )
+                    startDay++
+                }
+                Log.v("duration pairs", durationPairs.toString())
+                onDetermined(durationPairs)
+//                weeklyDurations = durationMap.map { it.key to it.value }
+//                Log.v("Got weekly durations", weeklyDurations.toString())
+            }
+
+        }
+    }
 
     fun dailyTimesInPastWeek() {
 
         viewModelScope.launch {
             val durationPairs = mutableListOf<Pair<Int, Duration>>()
-//            val durationMap = mutableMapOf(
-//                1 to Duration.ZERO,
-//                2 to Duration.ZERO,
-//                3 to Duration.ZERO,
-//                4 to Duration.ZERO,
-//                5 to Duration.ZERO,
-//                6 to Duration.ZERO,
-//                7 to Duration.ZERO
-//            )
+
             runBlocking {
 
                 val trackedTimes = timeTrackerDao.getTrackedTimesByUid(uid)
+                val days = 7
 
                 val currentDate = LocalDate.now().atStartOfDay()
-                val earliestDay = currentDate.minusDays(6L)
+                val earliestDay = currentDate.minusDays((days-1).toLong())
 
                 val startOfDayInstant = currentDate.toInstant(ZoneOffset.UTC)
                 var earliestTimeInstant = earliestDay.toInstant(ZoneOffset.UTC)
@@ -138,7 +292,7 @@ class TimeTrackerViewModel(
                 val zeroStartTimes = trackedTimes.trackedTimes.filter { it.startTime == 0L }
 
                 val times = mutableListOf<Day>()
-                for (i in 1..7) {
+                for (i in 1..days) {
                     val day = Day(
                         startTime = earliestTimeInstant.toEpochMilli(),
                         endTime = earliestTimeInstant.toEpochMilli() + millisecondsInDay

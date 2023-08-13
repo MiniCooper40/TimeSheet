@@ -93,5 +93,7 @@ dependencies {
     // For `compose`. Creates a `ChartStyle` based on an M3 Material Theme.
     implementation ("com.patrykandpatrick.vico:compose-m3:1.8.0")
 
+    implementation ("com.google.accompanist:accompanist-systemuicontroller:0.27.0")
+
     wearApp(project(":wear"))
 }

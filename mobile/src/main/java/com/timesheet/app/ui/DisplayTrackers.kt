@@ -56,8 +56,7 @@ fun DisplayTrackers(
         Column(
             modifier = Modifier
                 .verticalScroll(rememberScrollState())
-                .fillMaxWidth()
-                .padding(all = 12.dp),
+                .fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {

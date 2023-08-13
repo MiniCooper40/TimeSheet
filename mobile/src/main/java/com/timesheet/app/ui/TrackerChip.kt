@@ -71,7 +71,7 @@ fun TrackerChip(state: TrackedTimes?, onClick: () -> Unit, toggleTracking: () ->
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(10.dp),
+                    .padding(20.dp),
             ) {
                 Row(
                     modifier = Modifier
