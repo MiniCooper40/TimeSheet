@@ -29,6 +29,7 @@ android {
                 "proguard-rules.pro"
             )
         }
+
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -75,6 +76,22 @@ dependencies {
     val nav_version = "2.6.0"
 
     implementation("androidx.navigation:navigation-compose:$nav_version")
+
+
+    // Includes the core logic for charts and other elements.
+    implementation ("com.patrykandpatrick.vico:core:1.8.0")
+
+    // For Jetpack Compose.
+    implementation ("com.patrykandpatrick.vico:compose:1.8.0")
+
+    // For the view system.
+    implementation ("com.patrykandpatrick.vico:views:1.8.0")
+
+    // For `compose`. Creates a `ChartStyle` based on an M2 Material Theme.
+    implementation ("com.patrykandpatrick.vico:compose-m2:1.8.0")
+
+    // For `compose`. Creates a `ChartStyle` based on an M3 Material Theme.
+    implementation ("com.patrykandpatrick.vico:compose-m3:1.8.0")
 
     wearApp(project(":wear"))
 }

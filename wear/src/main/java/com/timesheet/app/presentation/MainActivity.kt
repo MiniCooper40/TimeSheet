@@ -85,17 +85,24 @@ fun WearApp(model: TimeSheetViewModel, applicationContext: Context) {
                 .background(MaterialTheme.colors.background)
                 .verticalScroll(rememberScrollState())
                 .padding(all = 20.dp)
+                .padding(top = 35.dp)
                 ,
             verticalArrangement = Arrangement.spacedBy(12.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Image(
-                painter = painterResource(id = R.drawable.time_sheet_logo_white),
-                contentDescription = "Logo, white",
-                modifier = Modifier
-                    .width(82.dp)
-            )
-            state.trackers.map { TimeTrackerChip(it, { model.updateTrackerStartTime(applicationContext, it) }) }
+//            Image(
+//                painter = painterResource(id = R.drawable.time_sheet_logo_black),
+//                contentDescription = "Logo, white",
+//                modifier = Modifier
+//                    .width(82.dp)
+//            )
+            state.trackers.map {
+                TimeTrackerChip(
+                    it,
+                    { model.updateTrackerStartTime(applicationContext, it) },
+
+                )
+            }
         }
     }
 }

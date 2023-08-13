@@ -25,6 +25,9 @@ interface TimeTrackerDao {
     @Query("UPDATE time_tracker SET startTime=:startTime WHERE uid=:uid")
     suspend fun updateStartTimeByUid(uid: Int, startTime: Long)
 
-    @Query("SELECT * FROM time_tracker WHERE uid=:uid ")
+    @Query("SELECT * FROM time_tracker WHERE uid=:uid")
     suspend fun getTrackedTimesByUid(uid: Int): TrackedTimes
+
+    @Query("SELECT COUNT(*) FROM tracked_time WHERE tracker_uid = :uid")
+    suspend fun numberOfTrackersForUid(uid: Int): Int
 }
