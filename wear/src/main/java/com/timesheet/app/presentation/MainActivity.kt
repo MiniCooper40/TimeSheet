@@ -96,7 +96,13 @@ fun WearApp(model: TimeSheetViewModel, applicationContext: Context) {
 //                modifier = Modifier
 //                    .width(82.dp)
 //            )
-            state.trackers.map { TimeTrackerChip(it, { model.updateTrackerStartTime(applicationContext, it) }) }
+            state.trackers.map {
+                TimeTrackerChip(
+                    it,
+                    { model.updateTrackerStartTime(applicationContext, it) },
+
+                )
+            }
         }
     }
 }

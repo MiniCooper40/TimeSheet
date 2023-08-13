@@ -59,6 +59,7 @@ import com.timesheet.app.presentation.theme.TimeSheetTheme
 import com.timesheet.app.ui.BottomBar
 import com.timesheet.app.ui.DisplayTrackers
 import com.timesheet.app.ui.HomePage
+import com.timesheet.app.ui.TrackerDetails
 import com.timesheet.app.ui.TrackerForm
 import com.timesheet.app.view.TimeSheetViewModel
 import com.timesheet.app.view.TimeTrackerViewModel
@@ -79,46 +80,8 @@ class MainActivity : ComponentActivity() {
         }
     }
 }
-
-fun fillTimeStampZeros(time: Int): String {
-    return if (time < 10) "0${time}" else time.toString()
-}
-
-fun toTimeStamp(milliseconds: Long?): String {
-
-    if (milliseconds == null) return "0"
-
-    val seconds = (milliseconds / 1000).toInt() % 60
-    val minutes = (milliseconds / (1000 * 60) % 60).toInt()
-    val hours = (milliseconds / (1000 * 60 * 60) % 24).toInt()
-
-    return "${fillTimeStampZeros(hours)}:${fillTimeStampZeros(minutes)}:${
-        fillTimeStampZeros(
-            seconds
-        )
-    }"
-}
-
-
 @Composable
-fun TrackerDetails(timeSheetViewModel: TimeSheetViewModel, uid: Int) {
-
-    val state by timeSheetViewModel.trackedTimesFor(uid).collectAsState(null)
-
-    state?.let {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(it.timeTracker.title)
-            it.trackedTimes.map {
-                Text(toTimeStamp(it.endTime-it.startTime))
-            }
-        }
-    }
-}
-
-@Composable
-fun MainApp(timeSheetViewModel: TimeSheetViewModel) {
+fun MainApp(timeSheetViewModel: TimeSheetViewModel, context: Context = LocalContext.current) {
 
     val navController = rememberNavController()
 
@@ -181,101 +144,8 @@ fun MainApp(timeSheetViewModel: TimeSheetViewModel) {
             composable("list") { DisplayTrackers(timeSheetViewModel = timeSheetViewModel, navController = navController) }
             composable("create") { TrackerForm(timeSheetViewModel = timeSheetViewModel) }
             composable("tracker/{uid}", arguments = listOf(navArgument("uid") { type = NavType.IntType })) {
-                it.arguments?.getInt("uid")?.let { uid ->
-                    TrackerDetails(
-                        timeSheetViewModel,
-                        uid = uid
-                    )
-                }
+                it.arguments?.getInt("uid")?.let { uid -> TrackerDetails(uid = uid) }
             }
-        }
-    }
-
-    @Composable
-    fun TT(trackedTime: TrackedTime) {
-        val elapsedTime = trackedTime.let { toTimeStamp(it.endTime - it.startTime) }
-        val startDate = Date(trackedTime.startTime)
-
-        Row {
-            Text(elapsedTime)
-            Text(startDate.toString())
-        }
-    }
-
-    fun testData(context: Context, tracker: TimeTracker) {
-
-
-        Thread {
-            val putDataMapRequest = PutDataMapRequest.create("/tracker/create")
-
-            val dataMap = putDataMapRequest.dataMap
-
-            dataMap.putLong("created", System.currentTimeMillis())
-            dataMap.putString("title", tracker.title)
-            dataMap.putLong("startTime", tracker.startTime)
-            dataMap.putInt("uid", tracker.uid)
-
-            val dataRequest = putDataMapRequest.asPutDataRequest()
-
-            Wearable.getDataClient(context).putDataItem(putDataMapRequest.asPutDataRequest())
-        }.start()
-    }
-
-    fun testCommunication(context: Context) {
-        Log.v("MOBILE", "Clicked test")
-
-        Thread {
-            val nodeListTask: Task<List<Node>> =
-                Wearable.getNodeClient(context).connectedNodes
-
-            val nodes = Tasks.await(nodeListTask)
-            for (node in nodes) {
-                // Build the message
-                // Build the message
-                val message = "Hello!"
-                val payload = message.toByteArray()
-
-                // Send the message
-
-                // Send the message
-                val sendMessageTask = Wearable.getMessageClient(context)
-                    .sendMessage(node.id, "/message", payload)
-
-                sendMessageTask.addOnSuccessListener {
-                    Log.v("TASK", "Success")
-                }
-                sendMessageTask.addOnCanceledListener {
-                    Log.v("TASK", "Cancelled")
-                }
-                sendMessageTask.addOnFailureListener {
-                    Log.v("TASK", "Failure")
-                }
-
-            }
-        }.start()
-    }
-
-    @Composable
-    fun WearApp(greetingName: String) {
-
-        MaterialTheme {
-            Text(greetingName)
         }
     }
 }
-
-//@Composable
-//fun TrackerDetails(timeSheetViewModel: TimeSheetViewModel, uid: Int) {
-//
-//    val state by timeSheetViewModel.trackedTimesFor(uid).collectAsState(initial = null)
-//
-//    state?.let {
-//        Text(it.timeTracker.title)
-//        it.trackedTimes.map {
-//            Row {
-//                Text(timeSta)
-//            }
-//        }
-//    }
-//
-//}
