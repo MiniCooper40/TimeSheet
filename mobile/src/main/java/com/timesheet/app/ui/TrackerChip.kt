@@ -42,7 +42,7 @@ fun TimeTrackerStamp(tracker: TimeTracker, default:String ="", modifier: Modifie
     })
 
     val text =
-        if(tracker.startTime != 0L) " " + toTimeStamp(currentTime - tracker.startTime!!)
+        if(tracker.startTime != 0L) toTimeStamp(currentTime - tracker.startTime!!)
         else default
 
     Text(text, style = style, modifier = modifier)
