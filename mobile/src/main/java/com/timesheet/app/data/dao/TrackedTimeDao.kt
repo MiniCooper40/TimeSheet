@@ -15,4 +15,7 @@ interface TrackedTimeDao {
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insert(trackedTime: TrackedTime)
 
+    @Query("SELECT * FROM tracked_time WHERE end_time >= :startTime AND start_time <= :endTime AND start_time != 0")
+    suspend fun trackedTimesInWindow(startTime: Long, endTime: Long): List<TrackedTime>
+
 }

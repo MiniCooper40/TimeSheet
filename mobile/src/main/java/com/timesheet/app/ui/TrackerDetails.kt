@@ -1,7 +1,9 @@
 package com.timesheet.app.ui
 
 import android.content.Context
+import android.graphics.Paint
 import android.graphics.Typeface
+import android.text.Layout
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -85,8 +87,12 @@ import com.timesheet.app.presentation.theme.Black
 import com.timesheet.app.presentation.theme.Grey
 import com.timesheet.app.presentation.theme.TimeSheetTheme
 import com.timesheet.app.presentation.theme.White
+import com.timesheet.app.ui.heatmap.CalenderDay
+import com.timesheet.app.ui.heatmap.HeatMap
+import com.timesheet.app.ui.heatmap.HeatMapDetails
 import com.timesheet.app.view.TimeTrackerViewModel
 import com.timesheet.app.view.WeeklyComparison
+import org.intellij.lang.annotations.JdkConstants.HorizontalAlignment
 import java.time.DayOfWeek
 import java.time.Duration
 import java.time.Instant
@@ -138,18 +144,20 @@ data class IconDetails(
 
 @Composable
 fun Changed(thisWeek: Long, lastWeek: Long) {
-    var text = ""
+    var text = "${toCompressedTimeStamp(thisWeek)} "
     var icon = IconDetails()
+
+    var changed = ""
 
     if(thisWeek == lastWeek) text = "0s"
     if(thisWeek > lastWeek) {
-        text = "${toCompressedTimeStamp(thisWeek-lastWeek)}"
+        changed = toCompressedTimeStamp(thisWeek-lastWeek)
         icon = IconDetails(
             Icons.Default.KeyboardArrowUp, Color.Green
         )
     }
     if(thisWeek < lastWeek) {
-        text = "${toCompressedTimeStamp(lastWeek-thisWeek)}"
+        changed = toCompressedTimeStamp(lastWeek-thisWeek)
         icon = IconDetails(
             Icons.Default.KeyboardArrowDown, Color.Red
         )
@@ -157,35 +165,35 @@ fun Changed(thisWeek: Long, lastWeek: Long) {
 
 
 
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(6.dp)
+    Column(
+        verticalArrangement =  Arrangement.spacedBy(6.dp),
+        horizontalAlignment = Alignment.Start
     ) {
-        Text(text, style = MaterialTheme.typography.subtitle2)
-        Icon(
-            icon.icon,
-            "Trend indicator",
-            tint = icon.tint,
-            modifier = Modifier
-                .size(20.dp)
-        )
-    //        when(sign((thisWeek - lastWeek).toDouble())) {
-//            1.0 -> Icon(
-//                Icons.Default.KeyboardArrowUp, "Up", tint = Color.Green
-//            )
-//            -1.0 -> Icon(
-//                Icons.Default.ArrowDropDown, "Down", tint = Color.Green
-//            )
-//            else -> {}
-//        }
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(top = 5.dp)
+        ) {
+            Text("Total: ", style = MaterialTheme.typography.subtitle2)
+            Text(text, style = MaterialTheme.typography.subtitle2)
+        }
+        Row(
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text("Change: " , style = MaterialTheme.typography.subtitle2)
+            Text(changed, style = MaterialTheme.typography.subtitle2)
+            Icon(
+                icon.icon,
+                "Trend indicator",
+                tint = icon.tint,
+                modifier = Modifier
+                    .size(20.dp)
+            )
+        }
     }
-
 }
 
 
 @Composable
-//fun TrackedTimeDailyChart(dailyTimesInPastWeek: List<Pair<Int, Duration>>) {
-//fun TrackedTimeDailyChart(chartEntryModelProducer: ChartEntryModelProducer) {
 fun TrackedTimeDailyChart(weeklyComparison: WeeklyComparison) {
 
     val chartEntryModelProducer = weeklyComparison.weeklyChartEntryModelProducer
@@ -208,6 +216,7 @@ fun TrackedTimeDailyChart(weeklyComparison: WeeklyComparison) {
                 axisLineColor = Black,
                 axisTickWidth = 1.dp,
                 axisGuidelineWidth = 1.dp,
+                axisLabelTypeface = Typeface.SANS_SERIF,
             ),
             columnChart = ChartStyle.ColumnChart(
                 columns = listOf(
@@ -232,10 +241,8 @@ fun TrackedTimeDailyChart(weeklyComparison: WeeklyComparison) {
                     )
                 )
             ),
-            marker = ChartStyle.Marker(
-
-            ),
-            elevationOverlayColor = Color.Black
+            marker = ChartStyle.Marker(),
+            elevationOverlayColor = Color.Black,
         )
     }
 
@@ -308,10 +315,20 @@ fun TrackerDetails(uid: Int, context: Context = LocalContext.current) {
         val timeTracker = timeTrackersObj.trackedTimes.timeTracker
         val trackedTimes = timeTrackersObj.trackedTimes
 
+        val heatmapDay = CalenderDay(dayOfMonth = 0, duration = Duration.ZERO)
+        val heatmapWeek = listOf(
+            heatmapDay.copy(duration = Duration.ofDays(2)), heatmapDay.copy(duration = Duration.ofDays(4)), heatmapDay.copy(duration = Duration.ofDays(5)), heatmapDay, heatmapDay, heatmapDay, heatmapDay
+        )
+        val heatmapDays = listOf(
+            heatmapWeek, heatmapWeek, heatmapWeek, heatmapWeek, heatmapWeek
+        )
+
+        val heatMapDetails by timeTrackerViewModel.monthlyHeatMap.collectAsState()
+
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier
-                .verticalScroll(rememberScrollState())
+                .verticalScroll(rememberScrollState()),
         ) {
             Surface(
                 modifier = Modifier
@@ -330,15 +347,23 @@ fun TrackerDetails(uid: Int, context: Context = LocalContext.current) {
                 }
             }
             Spacer(modifier = Modifier.size(20.dp))
-            Box(
+            Column(
                 modifier = Modifier.padding(20.dp)
             ){
                 Section("Past 7 days") {
                     //TrackedTimeDailyChart(timeTrackerViewModel.weeklyChartEntryModelProducer)
                     TrackedTimeDailyChart(timeTrackerViewModel.weeklyComparison)
                 }
+                Section("Past month") {
+                    HeatMap(
+                        heatMapDetails = heatMapDetails,
+                        modifier = Modifier
+                            .padding(top = 20.dp)
+                    )
+                }
             }
         }
+
 
 }
 
@@ -359,7 +384,7 @@ internal fun rememberMarker(): Marker {
             background = labelBackground,
             lineCount = 1,
             padding = dimensionsOf(all = 8.dp),
-            typeface = Typeface.MONOSPACE,
+            typeface = Typeface.SANS_SERIF,
             color = White
         )
         val indicatorInnerComponent = shapeComponent(Shapes.pillShape, White)
@@ -411,14 +436,15 @@ internal fun rememberMarker(): Marker {
 }
 
 @Composable
-private fun rememberLegend() = horizontalLegend(
+fun rememberLegend() = horizontalLegend(
     items = listOf("Last week" to Grey,"This week" to Black).mapIndexed { index, details ->
         legendItem(
             icon = shapeComponent(Shapes.pillShape, details.second),
             label = textComponent(
                 color = currentChartStyle.axis.axisLabelColor,
-                textSize = 14.sp,
-                typeface = Typeface.MONOSPACE,
+                textSize = 10.sp,
+                typeface = Typeface.SANS_SERIF,
+                textAlignment = Layout.Alignment.ALIGN_CENTER
             ),
             labelText = details.first,
         )

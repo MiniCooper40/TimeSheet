@@ -41,6 +41,7 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
+import androidx.navigation.NavOptions
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -81,9 +82,22 @@ class MainActivity : ComponentActivity() {
     }
 }
 @Composable
-fun MainApp(timeSheetViewModel: TimeSheetViewModel, context: Context = LocalContext.current) {
+fun MainApp(timeSheetViewModel: TimeSheetViewModel) {
 
     val navController = rememberNavController()
+
+    fun navigateToTracker(uid: Int) {
+       navController.navigate(
+           "tracker/$uid",
+           navOptions = NavOptions
+            .Builder()
+            .setExitAnim(0)
+            .setExitAnim(0)
+            .setPopEnterAnim(0)
+            .setPopExitAnim(0)
+            .build()
+        )
+    }
 
     Scaffold(
         bottomBar = {
@@ -138,10 +152,10 @@ fun MainApp(timeSheetViewModel: TimeSheetViewModel, context: Context = LocalCont
                 )
             }
         }
-    ) {
+    ) { it ->
         NavHost(navController, startDestination = "home", Modifier.padding(it)) {
-            composable("home") { Text("Home") }
-            composable("list") { DisplayTrackers(timeSheetViewModel = timeSheetViewModel, navController = navController) }
+            composable("home") { HomePage(navigateTo = { uid -> navigateToTracker((uid)) }) }
+            composable("list") { DisplayTrackers(timeSheetViewModel = timeSheetViewModel, navigateTo = { uid -> navigateToTracker((uid)) } ) }
             composable("create") { TrackerForm(timeSheetViewModel = timeSheetViewModel) }
             composable("tracker/{uid}", arguments = listOf(navArgument("uid") { type = NavType.IntType })) {
                 it.arguments?.getInt("uid")?.let { uid -> TrackerDetails(uid = uid) }

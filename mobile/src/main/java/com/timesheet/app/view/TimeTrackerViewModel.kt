@@ -9,21 +9,21 @@ import androidx.lifecycle.createSavedStateHandle
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.CreationExtras
 import com.patrykandpatrick.vico.core.entry.ChartEntryModelProducer
-import com.patrykandpatrick.vico.core.entry.composed.ComposedChartEntryModelProducer
-import com.patrykandpatrick.vico.core.entry.composed.plus
 import com.patrykandpatrick.vico.core.entry.entriesOf
 import com.timesheet.app.data.dao.TimeTrackerDao
 import com.timesheet.app.data.dao.TrackedTimeDao
 import com.timesheet.app.data.model.TimeTracker
 import com.timesheet.app.data.model.TrackedTime
 import com.timesheet.app.ui.Day
+import com.timesheet.app.ui.heatmap.CalenderDay
+import com.timesheet.app.ui.heatmap.HeatMapDetails
 import com.timesheet.app.ui.millisecondsInDay
-import com.timesheet.app.ui.toCompressedTimeStamp
 import com.timesheet.app.view.model.TimeTrackerUiState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import java.time.DayOfWeek
 import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
@@ -50,13 +50,74 @@ class TimeTrackerViewModel(
 
     internal val weeklyComparison = WeeklyComparison(0L,0L,weeklyChartEntryModelProducer)
 
+    private val _monthlyHeatMap = MutableStateFlow(
+        HeatMapDetails(listOf())
+    )
+    internal val monthlyHeatMap = _monthlyHeatMap.asStateFlow()
+
     init {
         updateState()
         dailyTimesInPastWeek()
     }
 
-    fun updateWeeklyTimes() {
+    private fun updateMonthlyHeatmap() {
+        viewModelScope.launch {
 
+            val currentDay = LocalDate.now()
+
+            val firstDayOfMonth = currentDay.minusDays(currentDay.dayOfMonth.toLong())
+            val lastDayOfMonth = currentDay.plusDays((currentDay.lengthOfMonth() - currentDay.dayOfMonth).toLong())
+
+            Log.v("currentDay", currentDay.toString())
+            Log.v("firstDayOfMonth", firstDayOfMonth.toString())
+            Log.v("lastDayOfMonth", lastDayOfMonth.toString())
+
+            dailyTimesInTimeRange(
+                firstDayOfMonth,
+                lastDayOfMonth
+                ){ durations ->
+                Log.v("durations", durations.toString())
+
+                val days: MutableList<MutableList<CalenderDay>> = mutableListOf()
+
+                durations.forEach {
+                    val date = firstDayOfMonth.withDayOfMonth(it.first)
+                    val dayOfMonth = date.dayOfMonth
+                    val weekOfMonth = dayOfMonth/7
+                    if(days.size <= weekOfMonth) days.add(mutableListOf())
+
+                    days[weekOfMonth].add(CalenderDay(
+                        dayOfMonth = dayOfMonth,
+                        duration = it.second
+                        )
+                    )
+                }
+
+                Log.v("days", days.toString())
+
+                val sortedDays = days.map { day ->
+                    day.sortedBy { it.dayOfMonth }.toMutableList()
+                }
+
+
+                val firstWeek = sortedDays[0]
+                while(firstWeek.size != 7) firstWeek.add(0, CalenderDay(0, Duration.ZERO))
+
+                val lastWeek = sortedDays.last()
+                while(lastWeek.size != 7)  lastWeek.add(lastWeek.size, CalenderDay(0, Duration.ZERO))
+
+                val heatMapDetails = HeatMapDetails(sortedDays.map { day ->
+                    day.toList()
+                })
+
+                Log.v("sortedDays", sortedDays.toString())
+
+                heatMapDetails.elements.forEach {
+                    Log.v("heatMapDetails", it.toString())
+                }
+                _monthlyHeatMap.value = heatMapDetails
+            }
+        }
     }
 
     fun updateState() {
@@ -64,8 +125,6 @@ class TimeTrackerViewModel(
             _trackedTimes.value = TimeTrackerUiState(
                 timeTrackerDao.getTrackedTimesByUid(uid)
             )
-
-//            val list = weeklyDurations.map { it.second.toMillis() }.toTypedArray()
 
             val currentTime = LocalDate.now().plusDays(5)
             dailyTimesInTimeRange(currentTime.minusDays(14), currentTime.minusDays(7)) { pastWeek ->
@@ -82,26 +141,9 @@ class TimeTrackerViewModel(
                 }
             }
 
-
-//            weeklyChartEntryModelProducer.setEntries(
-//                entriesOf(*list)
-//            )
-
+            updateMonthlyHeatmap()
         }
     }
-
-//    fun updateWeeklyCharts() {
-//        val thisWeeksDurationArray = thisWeeksDurations.map { it.second.toMillis() }.toTypedArray()
-//        thisWeeksChartEntryProducer.setEntries(
-//            entriesOf(*thisWeeksDurationArray)
-//        )
-//
-//        val pastWeeksDurationArray = thisWeeksDurations.map { it.second.toMillis() }.toTypedArray()
-//        pastWeeksChartEntryProducer.setEntries(
-//            entriesOf(*pastWeeksDurationArray)
-//        )
-//    }
-
     fun updateTrackerStartTime(context: Context, updatedTracker: TimeTracker) {
         Log.v("tracker", updatedTracker.toString())
 
@@ -113,11 +155,8 @@ class TimeTrackerViewModel(
         viewModelScope.launch {
             runBlocking {
                 val numTrackers = timeTrackerDao.numberOfTrackersForUid(uid)
-//                if(numTrackers == 0 && newStartTime == 0L) newStartTime = System.currentTimeMillis()
 
                 val tracker = timeTrackerDao.selectByUid(uid)
-
-                val trackers = timeTrackerDao.getTrackedTimesByUid(tracker.uid)
 
                 Log.v("TRACKERS FOUND", numTrackers.toString())
 
@@ -126,15 +165,6 @@ class TimeTrackerViewModel(
                 if(newStartTime == 0L) {
 
                     if(!weeklyDurations.isEmpty()) weeklyDurations.last().second.plusMillis(endTime-updatedTracker.startTime)
-                    val list = weeklyDurations.map { it.second.toMillis() }.toTypedArray()
-
-//                    weeklyChartEntryModelProducer.setEntries(
-//                        entriesOf(*list)
-//                    )
-
-
-
-
                     val trackedTime = TrackedTime(
                         startTime = tracker.startTime,
                         endTime = endTime,
@@ -254,8 +284,8 @@ class TimeTrackerViewModel(
 //                        durationPairs.add(
 //                            (if (startDay > 7) startDay - 7 else startDay) to it
 //                        )
-                    val day = if (startDay > 7) startDay - 7 else startDay
-                    durationPairs.add(day to it)
+//                    val day = if (startDay > 7) startDay - 7 else startDay
+                    durationPairs.add(startDay to it)
 //                        durationMap.put(
 //                            day,
 //                            durationMap.get(day)?.plus(it) ?: it
