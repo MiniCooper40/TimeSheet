@@ -33,7 +33,6 @@ class TimeSheetViewModel(
     private val _timeTrackers = MutableStateFlow(TimeSheetUiState(listOf()))
     val timeTrackers = _timeTrackers.asStateFlow()
 
-    private lateinit var currentTracker: TimeTracker
     private lateinit var currentTrackerFlow: Flow<TimeTrackerUiState>
 //    private lateinit var currentTrackerFlow: MutableStateFlow<TimeTrackerUiState>
 

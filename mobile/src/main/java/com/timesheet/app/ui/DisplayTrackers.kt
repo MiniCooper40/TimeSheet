@@ -35,7 +35,7 @@ import kotlinx.coroutines.delay
 fun DisplayTrackers(
     maxNumberOfTrackers: Int = Int.MAX_VALUE,
     timeSheetViewModel: TimeSheetViewModel,
-    navController: NavController,
+    navigateTo: (Int) -> Unit,
     context: Context = LocalContext.current
 ) {
     Display {
@@ -56,8 +56,7 @@ fun DisplayTrackers(
         Column(
             modifier = Modifier
                 .verticalScroll(rememberScrollState())
-                .fillMaxWidth()
-                .padding(all = 12.dp),
+                .fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
@@ -66,15 +65,7 @@ fun DisplayTrackers(
                 state?.let {
                     TrackerChip(
                         it.trackedTimes,
-                        onClick = { navController.navigate("tracker/" + it.trackedTimes.timeTracker.uid, NavOptions
-                            .Builder()
-                            .setExitAnim(0)
-                            .setExitAnim(0)
-                            .setPopEnterAnim(0)
-                            .setPopExitAnim(0)
-                            .build()
-                        )
-                                  },
+                        onClick = { navigateTo(it.trackedTimes.timeTracker.uid) },
                         toggleTracking = {
                             timeSheetViewModel.updateTrackerStartTime(
                                 context,
