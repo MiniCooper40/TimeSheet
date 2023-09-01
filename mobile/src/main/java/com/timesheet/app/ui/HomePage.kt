@@ -298,6 +298,7 @@ fun Table(weeklyData: TimeTrackerChartData, sortBy: (TableSortType) -> Unit, nav
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(2f),
+
             ) {
                 ChartTitle("Tracker") { updateSort(Alphabetical()) }
             }

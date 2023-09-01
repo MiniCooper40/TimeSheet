@@ -1,21 +1,17 @@
 package com.timesheet.app.ui
 
 import android.content.Context
-import android.graphics.Paint
 import android.graphics.Typeface
 import android.text.Layout
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.Icon
@@ -24,7 +20,6 @@ import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Surface
 import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowRight
@@ -33,16 +28,13 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -57,7 +49,6 @@ import com.patrykandpatrick.vico.compose.component.textComponent
 import com.patrykandpatrick.vico.compose.dimensions.dimensionsOf
 import com.patrykandpatrick.vico.compose.legend.horizontalLegend
 import com.patrykandpatrick.vico.compose.legend.legendItem
-import com.patrykandpatrick.vico.compose.legend.verticalLegend
 import com.patrykandpatrick.vico.compose.style.ChartStyle
 import com.patrykandpatrick.vico.compose.style.ProvideChartStyle
 import com.patrykandpatrick.vico.compose.style.currentChartStyle
@@ -74,31 +65,21 @@ import com.patrykandpatrick.vico.core.component.shape.Shapes
 import com.patrykandpatrick.vico.core.component.shape.cornered.Corner
 import com.patrykandpatrick.vico.core.component.shape.cornered.MarkerCorneredShape
 import com.patrykandpatrick.vico.core.context.MeasureContext
-import com.patrykandpatrick.vico.core.dimensions.Dimensions
 import com.patrykandpatrick.vico.core.dimensions.MutableDimensions
-import com.patrykandpatrick.vico.core.entry.ChartEntryModel
-import com.patrykandpatrick.vico.core.entry.ChartEntryModelProducer
-import com.patrykandpatrick.vico.core.entry.composed.ComposedChartEntryModelProducer
 import com.patrykandpatrick.vico.core.marker.Marker
 import com.patrykandpatrick.vico.core.marker.MarkerLabelFormatter
 import com.timesheet.app.data.model.TimeTracker
-import com.timesheet.app.data.model.TrackedTimes
 import com.timesheet.app.presentation.theme.Black
 import com.timesheet.app.presentation.theme.Grey
 import com.timesheet.app.presentation.theme.TimeSheetTheme
 import com.timesheet.app.presentation.theme.White
 import com.timesheet.app.ui.heatmap.CalenderDay
 import com.timesheet.app.ui.heatmap.HeatMap
-import com.timesheet.app.ui.heatmap.HeatMapDetails
 import com.timesheet.app.view.TimeTrackerViewModel
 import com.timesheet.app.view.WeeklyComparison
-import org.intellij.lang.annotations.JdkConstants.HorizontalAlignment
+import com.timesheet.app.view.model.TimeSheetChartData
 import java.time.DayOfWeek
 import java.time.Duration
-import java.time.Instant
-import java.time.LocalDate
-import java.time.ZoneOffset
-import kotlin.math.sign
 
 data class Day(
     val startTime: Long,
@@ -299,7 +280,8 @@ fun Display(content: @Composable () -> Unit) {
 @Composable
 fun Section(title: String, content: @Composable () -> Unit) {
     Column(
-        horizontalAlignment = Alignment.Start
+        horizontalAlignment = Alignment.Start,
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Text(text = title, style = MaterialTheme.typography.subtitle1)
         content()
@@ -351,14 +333,11 @@ fun TrackerDetails(uid: Int, context: Context = LocalContext.current) {
                 modifier = Modifier.padding(20.dp)
             ){
                 Section("Past 7 days") {
-                    //TrackedTimeDailyChart(timeTrackerViewModel.weeklyChartEntryModelProducer)
                     TrackedTimeDailyChart(timeTrackerViewModel.weeklyComparison)
                 }
                 Section("Past month") {
                     HeatMap(
-                        heatMapDetails = heatMapDetails,
-                        modifier = Modifier
-                            .padding(top = 20.dp)
+                        heatMapData = heatMapDetails
                     )
                 }
             }

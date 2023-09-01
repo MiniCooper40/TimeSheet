@@ -30,7 +30,7 @@ class HomePageViewModel(
 
     private fun updateLastWeekData() {
         viewModelScope.launch {
-            val today = LocalDate.now().plusDays(1)
+            val today = LocalDate.now().plusDays(2)
             val weekAgo = today.minusWeeks(3)
             _lastWeekData.value = timeTrackerRepository.timeTrackedBetween(weekAgo, today)
         }

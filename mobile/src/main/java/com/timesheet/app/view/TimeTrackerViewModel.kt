@@ -18,6 +18,9 @@ import com.timesheet.app.ui.Day
 import com.timesheet.app.ui.heatmap.CalenderDay
 import com.timesheet.app.ui.heatmap.HeatMapDetails
 import com.timesheet.app.ui.millisecondsInDay
+import com.timesheet.app.ui.toCompressedTimeStamp
+import com.timesheet.app.view.model.HeatMapData
+import com.timesheet.app.view.model.TimeSheetChartData
 import com.timesheet.app.view.model.TimeTrackerUiState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -51,7 +54,7 @@ class TimeTrackerViewModel(
     internal val weeklyComparison = WeeklyComparison(0L,0L,weeklyChartEntryModelProducer)
 
     private val _monthlyHeatMap = MutableStateFlow(
-        HeatMapDetails(listOf())
+        HeatMapData()
     )
     internal val monthlyHeatMap = _monthlyHeatMap.asStateFlow()
 
@@ -65,57 +68,39 @@ class TimeTrackerViewModel(
 
             val currentDay = LocalDate.now()
 
-            val firstDayOfMonth = currentDay.minusDays(currentDay.dayOfMonth.toLong())
+            val firstDayOfMonth = currentDay.minusDays(currentDay.dayOfMonth.toLong()-1)
             val lastDayOfMonth = currentDay.plusDays((currentDay.lengthOfMonth() - currentDay.dayOfMonth).toLong())
 
             Log.v("currentDay", currentDay.toString())
             Log.v("firstDayOfMonth", firstDayOfMonth.toString())
             Log.v("lastDayOfMonth", lastDayOfMonth.toString())
 
+            println("start day of month is ${firstDayOfMonth.dayOfMonth}")
+
             dailyTimesInTimeRange(
                 firstDayOfMonth,
                 lastDayOfMonth
                 ){ durations ->
                 Log.v("durations", durations.toString())
+                val firstDay = firstDayOfMonth.dayOfWeek.value
 
-                val days: MutableList<MutableList<CalenderDay>> = mutableListOf()
+                _monthlyHeatMap.value = HeatMapData(
+                    TimeSheetChartData(
+                        durations.map { it.second.toMillis().toFloat() },
+                        valueFormatter = { _: Int, value: Float ->
+                            toCompressedTimeStamp(value.toLong())
+                        },
+                        labelFormatter = { dayOfMonth: Int, _: Float ->
+                            firstDayOfMonth.plusDays(dayOfMonth.toLong()).dayOfMonth.toString()
+                        }
+                    ),
+                    firstDayOfMonth.dayOfWeek.value
+                )
 
-                durations.forEach {
-                    val date = firstDayOfMonth.withDayOfMonth(it.first)
-                    val dayOfMonth = date.dayOfMonth
-                    val weekOfMonth = dayOfMonth/7
-                    if(days.size <= weekOfMonth) days.add(mutableListOf())
-
-                    days[weekOfMonth].add(CalenderDay(
-                        dayOfMonth = dayOfMonth,
-                        duration = it.second
-                        )
-                    )
+                _monthlyHeatMap.value.chartData.data.forEachIndexed{ index, value ->
+                    println("value ${_monthlyHeatMap.value.chartData.valueFormatter.format(index, value)}")
+                    println("label ${_monthlyHeatMap.value.chartData.labelFormatter.format(index, value)}")
                 }
-
-                Log.v("days", days.toString())
-
-                val sortedDays = days.map { day ->
-                    day.sortedBy { it.dayOfMonth }.toMutableList()
-                }
-
-
-                val firstWeek = sortedDays[0]
-                while(firstWeek.size != 7) firstWeek.add(0, CalenderDay(0, Duration.ZERO))
-
-                val lastWeek = sortedDays.last()
-                while(lastWeek.size != 7)  lastWeek.add(lastWeek.size, CalenderDay(0, Duration.ZERO))
-
-                val heatMapDetails = HeatMapDetails(sortedDays.map { day ->
-                    day.toList()
-                })
-
-                Log.v("sortedDays", sortedDays.toString())
-
-                heatMapDetails.elements.forEach {
-                    Log.v("heatMapDetails", it.toString())
-                }
-                _monthlyHeatMap.value = heatMapDetails
             }
         }
     }
@@ -126,9 +111,9 @@ class TimeTrackerViewModel(
                 timeTrackerDao.getTrackedTimesByUid(uid)
             )
 
-            val currentTime = LocalDate.now().plusDays(5)
-            dailyTimesInTimeRange(currentTime.minusDays(14), currentTime.minusDays(7)) { pastWeek ->
-                dailyTimesInTimeRange(currentTime.minusDays(6), currentTime.plusDays(1)) { currentWeek ->
+            val currentTime = LocalDate.now()//.plusDays(5)
+            dailyTimesInTimeRange(currentTime.minusDays(12), currentTime.minusDays(6)) { pastWeek ->
+                dailyTimesInTimeRange(currentTime.minusDays(5), currentTime.plusDays(1)) { currentWeek ->
                     val currentList = currentWeek.map{ it.second.toMillis() }.toTypedArray()
                     val pastList = pastWeek.map{ it.second.toMillis() }.toTypedArray()
 
@@ -192,11 +177,13 @@ class TimeTrackerViewModel(
             runBlocking {
 
                 val trackedTimes = timeTrackerDao.getTrackedTimesByUid(uid)
-                val days = Duration.between(startDate.atStartOfDay(), endDate.atStartOfDay()).toDays()
-                Log.v("days between", "days between = $days")
 
-                val endDateTime = endDate.atStartOfDay()
+
+                val endDateTime = endDate.plusDays(1).atStartOfDay()
                 val startDateTime = startDate.atStartOfDay()
+
+                val days = Duration.between(startDateTime, endDateTime).toDays()
+                Log.v("days between", "days between = $days")
 
                 val startOfDayInstant = endDateTime.toInstant(ZoneOffset.UTC)
                 var earliestTimeInstant = startDateTime.toInstant(ZoneOffset.UTC)

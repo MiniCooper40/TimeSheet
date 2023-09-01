@@ -21,6 +21,7 @@ android {
         kotlinCompilerExtensionVersion = "1.4.8"
     }
 
+
     buildTypes {
         release {
             isMinifyEnabled = false
