@@ -40,6 +40,7 @@ import androidx.core.graphics.ColorUtils
 import com.patrykandpatrick.vico.core.extension.copyColor
 import com.timesheet.app.presentation.theme.Black
 import com.timesheet.app.presentation.theme.White
+import com.timesheet.app.ui.EvenlySpacedRow
 import com.timesheet.app.ui.toCompressedTimeStamp
 import com.timesheet.app.view.model.ChartDataFormatter
 import com.timesheet.app.view.model.HeatMapData
@@ -48,11 +49,6 @@ import kotlinx.coroutines.launch
 import java.time.DayOfWeek
 import java.time.Duration
 import java.util.Arrays
-
-data class CalenderDay(
-    val dayOfMonth: Int,
-    val duration: Duration
-)
 
 
 fun chartDataToMonth(
@@ -134,7 +130,7 @@ fun HeatMap(
 
     val scope = rememberCoroutineScope()
 
-    val maxValue = data.flatten().maxOrNull() ?: 1f
+    val maxValue = (data.flatten().maxOrNull() ?: 1f).coerceAtLeast(Float.MIN_VALUE)
 
     Column(
         verticalArrangement = Arrangement.spacedBy(5.dp),
@@ -145,11 +141,7 @@ fun HeatMap(
         var dayCounter = 0
 
         data.firstOrNull()?.let {
-            Row(
-                horizontalArrangement = Arrangement.SpaceEvenly,
-                modifier = Modifier
-                    .fillMaxWidth()
-            ) {
+            EvenlySpacedRow {
                 daysOfWeek.map {
                     Box(
                         modifier = Modifier.width(cellWidth),
@@ -166,12 +158,7 @@ fun HeatMap(
 
         data.mapIndexed { weekOfMonth, week ->
 
-            Row(
-                horizontalArrangement = Arrangement.SpaceEvenly,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    //.background(Color.Yellow)
-            ) {
+            EvenlySpacedRow {
                 if (weekOfMonth == 0) {
                     (1..7 - week.size).map {
                         HeatMapCell(
@@ -186,8 +173,8 @@ fun HeatMap(
                     val label = labelFormatter.format(dayOfMonth, day)
                     val value = valueFormatter.format(dayOfMonth, day)
                     println("day of month is $dayOfMonth")
-                    println("label is $label")
-                    println("value is $value")
+//                    println("label is $label")
+//                    println("value is $value")
 
                     val toolTipState = remember { PlainTooltipState() }
                     PlainTooltipBox(
@@ -198,6 +185,8 @@ fun HeatMap(
                         shape = RoundedCornerShape(20.dp)
                     ) {
 
+                        val colorRatio = day / maxValue
+                        println("color ration $colorRatio")
                         HeatMapCell(
                             modifier = Modifier
                                 .size(45.dp)
@@ -206,7 +195,7 @@ fun HeatMap(
                                 ColorUtils.blendARGB(
                                     Color.White.toArgb(),
                                     Color.DarkGray.toArgb(),
-                                    day / maxValue
+                                    colorRatio
                                 ).copyColor(alpha = 0.4f)
                             ),
                             label = label,
@@ -223,8 +212,6 @@ fun HeatMap(
                     }
                 }
             }
-
         }
-
     }
 }

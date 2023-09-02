@@ -51,18 +51,9 @@ fun TimeTrackerStamp(tracker: TimeTracker, default:String ="", modifier: Modifie
 @Composable
 fun TrackerChip(state: TrackedTimes?, onClick: () -> Unit, toggleTracking: () -> Unit) {
 
-
-
-    fun toggle() {
-        toggleTracking()
-    }
-
     state?.let {
         val tracker = it.timeTracker
         val times = it.trackedTimes
-
-        val timesDeltas = times.map { it.endTime - it.startTime }.filter { it < 300000 }
-
 
         Card(
             modifier = Modifier

@@ -57,7 +57,6 @@ import com.timesheet.app.data.model.TimeTracker
 import com.timesheet.app.data.model.TrackedTime
 import com.timesheet.app.data.model.TrackedTimes
 import com.timesheet.app.presentation.theme.TimeSheetTheme
-import com.timesheet.app.ui.BottomBar
 import com.timesheet.app.ui.DisplayTrackers
 import com.timesheet.app.ui.HomePage
 import com.timesheet.app.ui.TrackerDetails
