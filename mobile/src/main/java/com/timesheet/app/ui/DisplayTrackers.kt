@@ -38,42 +38,40 @@ fun DisplayTrackers(
     navigateTo: (Int) -> Unit,
     context: Context = LocalContext.current
 ) {
-    Display {
 
-        val state by timeSheetViewModel.timeTrackers.collectAsState()
-        var currentTime by remember {
-            mutableStateOf(System.currentTimeMillis())
-        }
+    val state by timeSheetViewModel.timeTrackers.collectAsState()
+    var currentTime by remember {
+        mutableStateOf(System.currentTimeMillis())
+    }
 
-        LaunchedEffect(key1 = currentTime, block = {
-            delay(100L)
-            currentTime = System.currentTimeMillis()
-        })
+    LaunchedEffect(key1 = currentTime, block = {
+        delay(100L)
+        currentTime = System.currentTimeMillis()
+    })
 
 
-        Log.v("NUM TRACKERS", maxNumberOfTrackers.toString())
+    Log.v("NUM TRACKERS", maxNumberOfTrackers.toString())
 
-        Column(
-            modifier = Modifier
-                .verticalScroll(rememberScrollState())
-                .fillMaxWidth(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            state.trackers.take(maxNumberOfTrackers).map {
-                val state by timeSheetViewModel.trackedTimesFor(it.uid).collectAsState(initial = null)
-                state?.let {
-                    TrackerChip(
-                        it.trackedTimes,
-                        onClick = { navigateTo(it.trackedTimes.timeTracker.uid) },
-                        toggleTracking = {
-                            timeSheetViewModel.updateTrackerStartTime(
-                                context,
-                                it.trackedTimes.timeTracker
-                            )
-                        }
-                    )
-                }
+    Column(
+        modifier = Modifier
+            .verticalScroll(rememberScrollState())
+            .fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        state.trackers.take(maxNumberOfTrackers).map {
+            val trackedTimes by timeSheetViewModel.trackedTimesFor(it.uid).collectAsState(initial = null)
+            trackedTimes?.let {
+                TrackerChip(
+                    it.trackedTimes,
+                    onClick = { navigateTo(it.trackedTimes.timeTracker.uid) },
+                    toggleTracking = {
+                        timeSheetViewModel.updateTrackerStartTime(
+                            context,
+                            it.trackedTimes.timeTracker
+                        )
+                    }
+                )
             }
         }
     }

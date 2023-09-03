@@ -1,5 +1,7 @@
 package com.timesheet.app
 
+import com.timesheet.app.ui.heatmap.chartDataToMonth
+import com.timesheet.app.view.model.TimeSheetChartData
 import org.junit.Test
 
 import org.junit.Assert.*
@@ -11,7 +13,27 @@ import org.junit.Assert.*
  */
 class ExampleUnitTest {
     @Test
-    fun addition_isCorrect() {
-        assertEquals(4, 2 + 2)
+    fun monthTest() {
+        val days = listOf(
+            1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16
+        ).map { it.toFloat() }
+        val startOffset = 4
+
+        val expected = listOf(
+            listOf(1,2,3).map { it.toFloat() },
+            listOf(4,5,6,7,8,9,10).map { it.toFloat() },
+            listOf(11,12,13,14,15,16).map { it.toFloat() }
+        )
+
+        val chartData = TimeSheetChartData(days)
+
+        val actual = chartDataToMonth(chartData, startOffset = startOffset)
+
+        println("expected: $expected")
+        println("actual: $actual")
+
+        assertTrue(
+            actual.equals(expected)
+        )
     }
 }
