@@ -150,6 +150,8 @@ class TimeTrackerViewModel(
 
         val yearMonthDateFormatter = DateTimeFormatter.ofPattern("YY/MM")
 
+        Log.v("CurrentDay in MHMFD", "$currentDay w/ dayOfMonth ${currentDay.dayOfMonth}")
+
         val firstDayOfMonth =  day.minusDays(currentDay.dayOfMonth.toLong()-1)
         val lastDayOfMonth = day.plusDays((currentDay.lengthOfMonth() - currentDay.dayOfMonth).toLong())
 

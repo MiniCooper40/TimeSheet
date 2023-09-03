@@ -124,20 +124,14 @@ fun HeatMap(
     retrieveData: (Int) -> Flow<HeatMapData>
 ) {
 
-    var selected by remember { mutableStateOf(1) }
+    var selected by remember { mutableStateOf(0) }
 
     Log.v("SELECTED", selected.toString())
 
     val presentMonthHeatMapData by heatMapState.current.collectAsState()
-    val previousMonthHeatMapData by retrieveData(selected).collectAsState(initial = HeatMapData())
-
-//    val current by
-//        if(selected == 0) heatMapState.current.collectAsState()
-//        else retrieveData(selected).collectAsState(initial = HeatMapData())
+    val previousMonthHeatMapData by retrieveData(selected.coerceAtLeast(1)).collectAsState(initial = HeatMapData())
 
     val current = if(selected > 0) previousMonthHeatMapData else presentMonthHeatMapData
-
-//    Log.v("CURRENT", current.toString())
 
     Row(
         horizontalArrangement = Arrangement.SpaceBetween,
