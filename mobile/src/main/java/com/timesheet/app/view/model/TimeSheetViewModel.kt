@@ -1,4 +1,4 @@
-package com.timesheet.app.view
+package com.timesheet.app.view.model
 
 import android.content.Context
 import android.util.Log
@@ -13,10 +13,11 @@ import com.google.android.gms.wearable.Wearable
 import com.timesheet.app.data.dao.TimeTrackerDao
 import com.timesheet.app.data.dao.TrackedTimeDao
 import com.timesheet.app.data.dao.TrackedTimesDao
-import com.timesheet.app.data.model.TimeTracker
-import com.timesheet.app.data.model.TrackedTime
-import com.timesheet.app.view.model.TimeSheetUiState
-import com.timesheet.app.view.model.TimeTrackerUiState
+import com.timesheet.app.data.entity.TimeTracker
+import com.timesheet.app.data.entity.TrackedTime
+import com.timesheet.app.application.MyApplication
+import com.timesheet.app.view.data.TimeSheetUiState
+import com.timesheet.app.view.data.TimeTrackerUiState
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow

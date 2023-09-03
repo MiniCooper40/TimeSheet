@@ -1,4 +1,4 @@
-package com.timesheet.app.view
+package com.timesheet.app.view.model
 
 import android.content.Context
 import android.util.Log
@@ -8,21 +8,23 @@ import androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.Companion.AP
 import androidx.lifecycle.createSavedStateHandle
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.CreationExtras
-import com.patrykandpatrick.vico.core.entry.ChartEntry
 import com.patrykandpatrick.vico.core.entry.ChartEntryModelProducer
 import com.patrykandpatrick.vico.core.entry.FloatEntry
 import com.patrykandpatrick.vico.core.entry.entriesOf
 import com.timesheet.app.data.dao.TimeTrackerDao
 import com.timesheet.app.data.dao.TrackedTimeDao
-import com.timesheet.app.data.model.TimeTracker
-import com.timesheet.app.data.model.TrackedTime
+import com.timesheet.app.data.entity.TimeTracker
+import com.timesheet.app.data.entity.TrackedTime
 import com.timesheet.app.ui.Day
 import com.timesheet.app.ui.millisecondsInDay
 import com.timesheet.app.ui.toCompressedTimeStamp
-import com.timesheet.app.view.model.HeatMapData
-import com.timesheet.app.view.model.MutableHistoricalStateFlow
-import com.timesheet.app.view.model.TimeSheetChartData
-import com.timesheet.app.view.model.TimeTrackerUiState
+import com.timesheet.app.application.MyApplication
+import com.timesheet.app.data.repository.TimeSheetPreferencesRepository
+import com.timesheet.app.data.repository.WeeklyStrategy
+import com.timesheet.app.view.data.HeatMapData
+import com.timesheet.app.view.data.MutableHistoricalStateFlow
+import com.timesheet.app.view.data.TimeSheetChartData
+import com.timesheet.app.view.data.TimeTrackerUiState
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.Flow
@@ -71,6 +73,7 @@ data class TimeTrackerComparisonChartModel(
 class TimeTrackerViewModel(
     private var timeTrackerDao: TimeTrackerDao,
     private var trackedTimeDao: TrackedTimeDao,
+    private val preferencesRepository: TimeSheetPreferencesRepository,
     val uid: Int
 ): ViewModel() {
 
@@ -200,38 +203,38 @@ class TimeTrackerViewModel(
     private val cachedWeeklyComparisons: MutableMap<Int, CachedTimeSpanComparisonChartModel> = mutableMapOf()
 
     fun weeklyComparisonFor(week: Int) {
-        val relativeCurrentTime = ZonedDateTime.now().minusWeeks(week.toLong())
 
         viewModelScope.launch {
-            val previousTimeSpanStart = relativeCurrentTime.minusDays(13)
-            val previousTimeSpanEnd = relativeCurrentTime.minusDays(7)
 
-            val recentTimeSpanStart = relativeCurrentTime.minusDays(6)
-            val recentTimeSpanEnd = relativeCurrentTime
+            val weeklyStrategy = preferencesRepository.getWeeklyStrategy()
+
+            val currentTime = ZonedDateTime.now()
+
+            Log.v("WEEKLY STRATEGY", weeklyStrategy.toString())
+
+            val relativeRecentTimeSpanStart = when(weeklyStrategy) {
+                WeeklyStrategy.TRAILING -> currentTime.minusWeeks(week.toLong()).minusDays(6L)
+                WeeklyStrategy.CYCLE -> {
+                    val cycleStartDay = preferencesRepository.getWeeklyCycleStartDay()
+                    Log.v("CYCLE START DAY", cycleStartDay.toString())
+                    val currentStartDay = currentTime.dayOfWeek.value
+                    Log.v("CURRENT START DAY", currentTime.dayOfWeek.toString())
+
+                    currentTime.minusWeeks(week.toLong()).minusDays((currentStartDay - cycleStartDay.value).toLong())
+                }
+            }
+
+            val previousTimeSpanStart = relativeRecentTimeSpanStart.minusDays(7)
+            val previousTimeSpanEnd = relativeRecentTimeSpanStart.minusDays(1)
+
+            val recentTimeSpanStart = relativeRecentTimeSpanStart
+            val recentTimeSpanEnd = relativeRecentTimeSpanStart.plusDays(6L)
 
             dailyTimesInTimeRange(previousTimeSpanStart, previousTimeSpanEnd).let { pastWeek ->
                 dailyTimesInTimeRange(recentTimeSpanStart, recentTimeSpanEnd).let { currentWeek ->
                     val currentList = currentWeek.map{ it.second.toMillis() }.toTypedArray()
                     val pastList = pastWeek.map{ it.second.toMillis() }.toTypedArray()
                     val timeFormatter = DateTimeFormatter.ofPattern("MM/dd")
-
-
-//                    weeklyChartEntryModelProducer.setEntries(
-//                        entriesOf(*pastList), entriesOf(*currentList)
-//                    )
-
-//                    weeklyComparison.trackedTimeSpans = listOf(
-//                        TrackedTimeSpan(
-//                            pastList.sum(),
-//                            "${previousTimeSpanStart.format(timeFormatter)} ${previousTimeSpanEnd.format(timeFormatter)}"
-//                        ),
-//                        TrackedTimeSpan(
-//                            currentList.sum(),
-//                            "${recentTimeSpanStart.format(timeFormatter)} ${recentTimeSpanEnd.format(timeFormatter)}"
-//                        )
-//                    )
-//
-//                    weeklyComparison.lastDayOfWeek = recentTimeSpanEnd.dayOfWeek
 
                     val chartModel = CachedTimeSpanComparisonChartModel(
                         entries = listOf(entriesOf(*pastList), entriesOf(*currentList)),
@@ -542,6 +545,9 @@ class TimeTrackerViewModel(
                     return TimeTrackerViewModel(
                         (application as MyApplication).timeTrackerDao,
                         (application as MyApplication).trackedTimeDao,
+                        TimeSheetPreferencesRepository(
+                            application.applicationContext
+                        ),
                         uid
                     ) as T
                 }

@@ -1,6 +1,6 @@
 package com.timesheet.app.ui.table
 
-import com.timesheet.app.view.model.TimeTrackerChartData
+import com.timesheet.app.view.data.TimeTrackerChartData
 
 sealed class TableSortType {
 

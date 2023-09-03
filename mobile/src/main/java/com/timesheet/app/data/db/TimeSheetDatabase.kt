@@ -7,9 +7,8 @@ import androidx.room.RoomDatabase
 import com.timesheet.app.data.dao.TimeTrackerDao
 import com.timesheet.app.data.dao.TrackedTimeDao
 import com.timesheet.app.data.dao.TrackedTimesDao
-import com.timesheet.app.data.model.TimeTracker
-import com.timesheet.app.data.model.TrackedTime
-import com.timesheet.app.data.model.TrackedTimes
+import com.timesheet.app.data.entity.TimeTracker
+import com.timesheet.app.data.entity.TrackedTime
 
 @Database(entities = arrayOf(TimeTracker::class, TrackedTime::class), version=12)
 abstract class TimeSheetDatabase: RoomDatabase() {

@@ -2,15 +2,13 @@ package com.timesheet.app.listener
 
 import android.content.Context
 import android.util.Log
-import com.google.android.gms.wearable.DataEvent
 import com.google.android.gms.wearable.DataEventBuffer
 import com.google.android.gms.wearable.DataMapItem
 import com.google.android.gms.wearable.WearableListenerService
 import com.timesheet.app.data.dao.TimeTrackerDao
 import com.timesheet.app.data.dao.TrackedTimeDao
 import com.timesheet.app.data.db.TimeSheetDatabase
-import com.timesheet.app.data.model.TimeTracker
-import com.timesheet.app.data.model.TrackedTime
+import com.timesheet.app.data.entity.TrackedTime
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob

@@ -1,4 +1,4 @@
-package com.timesheet.app.presentation.theme
+package com.timesheet.app.theme
 
 import androidx.compose.material.Colors
 import androidx.compose.ui.graphics.Color
