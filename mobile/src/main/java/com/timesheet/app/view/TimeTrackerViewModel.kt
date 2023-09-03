@@ -1,7 +1,6 @@
 package com.timesheet.app.view
 
 import android.content.Context
-import android.icu.util.TimeZone
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -9,38 +8,64 @@ import androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.Companion.AP
 import androidx.lifecycle.createSavedStateHandle
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.CreationExtras
+import com.patrykandpatrick.vico.core.entry.ChartEntry
 import com.patrykandpatrick.vico.core.entry.ChartEntryModelProducer
+import com.patrykandpatrick.vico.core.entry.FloatEntry
 import com.patrykandpatrick.vico.core.entry.entriesOf
 import com.timesheet.app.data.dao.TimeTrackerDao
 import com.timesheet.app.data.dao.TrackedTimeDao
 import com.timesheet.app.data.model.TimeTracker
 import com.timesheet.app.data.model.TrackedTime
 import com.timesheet.app.ui.Day
-import com.timesheet.app.ui.heatmap.HeatMapDetails
 import com.timesheet.app.ui.millisecondsInDay
 import com.timesheet.app.ui.toCompressedTimeStamp
 import com.timesheet.app.view.model.HeatMapData
+import com.timesheet.app.view.model.MutableHistoricalStateFlow
 import com.timesheet.app.view.model.TimeSheetChartData
 import com.timesheet.app.view.model.TimeTrackerUiState
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import java.time.Clock
+import kotlinx.coroutines.withContext
 import java.time.DayOfWeek
 import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
-import java.time.LocalDateTime
-import java.time.ZoneId
 import java.time.ZoneOffset
 import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
 
-data class WeeklyComparison(
-    var timeLastWeek: Long,
-    var timeThisWeek: Long,
+
+data class TrackedTimeSpan(
+    val trackedTime: Long,
+    val label: String
+)
+data class TimeSpanComparisonChartModel(
+    var trackedTimeSpans: List<TrackedTimeSpan>,
     val weeklyChartEntryModelProducer: ChartEntryModelProducer,
     var lastDayOfWeek: DayOfWeek = DayOfWeek.MONDAY
+)
+
+data class CachedTimeSpanComparisonChartModel(
+    var trackedTimeSpans: List<TrackedTimeSpan>,
+    val entries: List<List<FloatEntry>>,
+    val lastDayOfWeek: DayOfWeek
+)
+
+data class ComparisonData(
+    var trackedTimeSpans: List<TrackedTimeSpan> = listOf(),
+    val lastDayOfWeek: DayOfWeek = DayOfWeek.MONDAY
+)
+
+data class TimeTrackerComparisonChartModel(
+    val comparison: StateFlow<ComparisonData>,
+    val weeklyChartEntryModelProducer: ChartEntryModelProducer
 )
 
 class TimeTrackerViewModel(
@@ -56,20 +81,34 @@ class TimeTrackerViewModel(
     private var weeklyDurations: List<Pair<Int, Duration>> = listOf()
 
 
-    internal val weeklyComparison = WeeklyComparison(
-        0L,
-        0L,
+    internal val weeklyComparison = TimeSpanComparisonChartModel(
+        listOf(),
         weeklyChartEntryModelProducer
     )
 
-    private val _monthlyHeatMap = MutableStateFlow(
-        HeatMapData()
+
+    private var currentComparisonWeek = 0
+    private val _comparisonData = MutableStateFlow(
+        ComparisonData()
     )
-    internal val monthlyHeatMap = _monthlyHeatMap.asStateFlow()
+
+    private val comparisonData = _comparisonData.asStateFlow()
+
+    public val chartModel = TimeTrackerComparisonChartModel(
+        comparisonData,
+        weeklyChartEntryModelProducer
+    )
+
+//    private val _monthlyHeatMap = MutableStateFlow(
+//        HeatMapData()
+//    )
+//    internal val monthlyHeatMap = _monthlyHeatMap.asStateFlow()
+
+    private val _monthlyHeatMapState = MutableHistoricalStateFlow<HeatMapData>()
+    val monthlyHeatMapState = _monthlyHeatMapState.toStateFlow()
 
     init {
         updateState()
-        dailyTimesInPastWeek()
     }
 
     private fun currentLocalDate(): LocalDate {
@@ -78,39 +117,73 @@ class TimeTrackerViewModel(
         return time.toLocalDate()
     }
 
+    private val monthlyHeatMapCache = mutableMapOf<Int, HeatMapData>()
+
+    fun acquireMonthlyHeatmapDataFor(month: Int): Flow<HeatMapData> {
+
+        return when(month <= 0) {
+            true -> flow {
+
+            }
+            false -> flow {
+                if (!monthlyHeatMapCache.containsKey(month)) {
+                    val date = ZonedDateTime.now().minusMonths(month.toLong())
+                    val heatMap = monthlyHeatMapForDay(date)
+                    monthlyHeatMapCache[month] = heatMap
+                }
+                monthlyHeatMapCache[month]?.let { emit(it) }
+            }
+        }
+    }
+
     private fun updateMonthlyHeatmap() {
         viewModelScope.launch {
+            monthlyHeatMapForDay(ZonedDateTime.now()).let {
+                Log.v("MONTHLY HEATMAP", it.toString())
+                _monthlyHeatMapState.value = it
+            }
+        }
+    }
 
-            val currentDay = currentLocalDate()
+    private suspend fun monthlyHeatMapForDay(day: ZonedDateTime): HeatMapData {
+        val currentDay = day.toLocalDate()
 
-            val firstDayOfMonth =  ZonedDateTime.now().minusDays(currentDay.dayOfMonth.toLong()-1)//currentDay.minusDays(currentDay.dayOfMonth.toLong())
-            val lastDayOfMonth = ZonedDateTime.now().plusDays((currentDay.lengthOfMonth() - currentDay.dayOfMonth).toLong()) //currentDay.plusDays((currentDay.lengthOfMonth() - currentDay.dayOfMonth).toLong())
+        val yearMonthDateFormatter = DateTimeFormatter.ofPattern("YY/MM")
 
-            Log.v("currentDay", currentDay.toString())
-            Log.v("firstDayOfMonth", firstDayOfMonth.toString())
-            Log.v("lastDayOfMonth", lastDayOfMonth.toString())
+        val firstDayOfMonth =  day.minusDays(currentDay.dayOfMonth.toLong()-1)
+        val lastDayOfMonth = day.plusDays((currentDay.lengthOfMonth() - currentDay.dayOfMonth).toLong())
 
-            println("start day of month is ${firstDayOfMonth.dayOfMonth}")
+//        Log.v("currentDay", currentDay.toString())
+//        Log.v("firstDayOfMonth", firstDayOfMonth.toString())
+//        Log.v("lastDayOfMonth", lastDayOfMonth.toString())
+//
+//        println("start day of month is ${firstDayOfMonth.dayOfMonth}")
 
+        val heatMap = viewModelScope.async {
             dailyTimesInTimeRange(
                 firstDayOfMonth,
                 lastDayOfMonth
-                ){ durations ->
+            ).let { durations ->
                 Log.v("durations", durations.toString())
                 val firstDay = firstDayOfMonth.dayOfWeek.value
 
-                _monthlyHeatMap.value = HeatMapData(
-                    TimeSheetChartData(
-                        durations.map { it.second.toMillis().toFloat() },
-                        valueFormatter = { _: Int, value: Float ->
-                            toCompressedTimeStamp(value.toLong())
-                        },
-                        labelFormatter = { dayOfMonth: Int, _: Float ->
-                            firstDayOfMonth.plusDays(dayOfMonth.toLong()).dayOfMonth.toString()
-                        }
-                    ),
-                    firstDayOfMonth.dayOfWeek.value
-                )
+
+                withContext(Dispatchers.Default) {
+                    return@withContext HeatMapData(
+                        TimeSheetChartData(
+                            durations.map { it.second.toMillis().toFloat() },
+                            valueFormatter = { _: Int, value: Float ->
+                                toCompressedTimeStamp(value.toLong())
+                            },
+                            labelFormatter = { dayOfMonth: Int, _: Float ->
+                                firstDayOfMonth.plusDays(dayOfMonth.toLong()).dayOfMonth.toString()
+                            },
+                        ),
+                        firstDayOfMonth.dayOfWeek.value,
+                        firstDayOfMonth.format(yearMonthDateFormatter)
+                    )
+                }
+
 
 //                _monthlyHeatMap.value.chartData.data.forEachIndexed{ index, value ->
 //                    println("value ${_monthlyHeatMap.value.chartData.valueFormatter.format(index, value)}")
@@ -118,6 +191,80 @@ class TimeTrackerViewModel(
 //                }
             }
         }
+
+        return heatMap.await()
+    }
+
+    private val cachedWeeklyComparisons: MutableMap<Int, CachedTimeSpanComparisonChartModel> = mutableMapOf()
+
+    fun weeklyComparisonFor(week: Int) {
+        val relativeCurrentTime = ZonedDateTime.now().minusWeeks(week.toLong())
+
+        viewModelScope.launch {
+            val previousTimeSpanStart = relativeCurrentTime.minusDays(13)
+            val previousTimeSpanEnd = relativeCurrentTime.minusDays(7)
+
+            val recentTimeSpanStart = relativeCurrentTime.minusDays(6)
+            val recentTimeSpanEnd = relativeCurrentTime
+
+            dailyTimesInTimeRange(previousTimeSpanStart, previousTimeSpanEnd).let { pastWeek ->
+                dailyTimesInTimeRange(recentTimeSpanStart, recentTimeSpanEnd).let { currentWeek ->
+                    val currentList = currentWeek.map{ it.second.toMillis() }.toTypedArray()
+                    val pastList = pastWeek.map{ it.second.toMillis() }.toTypedArray()
+                    val timeFormatter = DateTimeFormatter.ofPattern("MM/dd")
+
+
+//                    weeklyChartEntryModelProducer.setEntries(
+//                        entriesOf(*pastList), entriesOf(*currentList)
+//                    )
+
+//                    weeklyComparison.trackedTimeSpans = listOf(
+//                        TrackedTimeSpan(
+//                            pastList.sum(),
+//                            "${previousTimeSpanStart.format(timeFormatter)} ${previousTimeSpanEnd.format(timeFormatter)}"
+//                        ),
+//                        TrackedTimeSpan(
+//                            currentList.sum(),
+//                            "${recentTimeSpanStart.format(timeFormatter)} ${recentTimeSpanEnd.format(timeFormatter)}"
+//                        )
+//                    )
+//
+//                    weeklyComparison.lastDayOfWeek = recentTimeSpanEnd.dayOfWeek
+
+                    val chartModel = CachedTimeSpanComparisonChartModel(
+                        entries = listOf(entriesOf(*pastList), entriesOf(*currentList)),
+                        lastDayOfWeek = recentTimeSpanEnd.dayOfWeek,
+                        trackedTimeSpans = listOf(
+                            TrackedTimeSpan(
+                                currentList.sum(),
+                                "${recentTimeSpanStart.format(timeFormatter)} - ${recentTimeSpanEnd.format(timeFormatter)}"
+                            ),
+                            TrackedTimeSpan(
+                                pastList.sum(),
+                                "${previousTimeSpanStart.format(timeFormatter)} - ${previousTimeSpanEnd.format(timeFormatter)}"
+                            ),
+                        )
+                    )
+
+                    setWeeklyChartModel(chartModel)
+                }
+            }
+        }
+    }
+
+    private fun setWeeklyChartModel(model: CachedTimeSpanComparisonChartModel) {
+        val entries = model.entries
+        val lastDayOfWeek = model.lastDayOfWeek
+        val trackedTimeSpans = model.trackedTimeSpans
+
+        weeklyComparison.weeklyChartEntryModelProducer.setEntries(entries)
+        weeklyComparison.trackedTimeSpans = trackedTimeSpans
+        weeklyComparison.lastDayOfWeek = lastDayOfWeek
+
+        _comparisonData.value = ComparisonData(
+            trackedTimeSpans,
+            lastDayOfWeek
+        )
     }
 
     private fun updateState() {
@@ -127,21 +274,22 @@ class TimeTrackerViewModel(
             )
 
             //val currentTime = currentLocalDate()
-            val currentTime = ZonedDateTime.now()
-            dailyTimesInTimeRange(currentTime.minusDays(13), currentTime.minusDays(7)) { pastWeek ->
-                dailyTimesInTimeRange(currentTime.minusDays(6), currentTime) { currentWeek ->
-                    val currentList = currentWeek.map{ it.second.toMillis() }.toTypedArray()
-                    val pastList = pastWeek.map{ it.second.toMillis() }.toTypedArray()
-
-                    weeklyChartEntryModelProducer.setEntries(
-                        entriesOf(*pastList), entriesOf(*currentList)
-                    )
-
-                    weeklyComparison.timeLastWeek = pastList.sum()
-                    weeklyComparison.timeThisWeek = currentList.sum()
-                    weeklyComparison.lastDayOfWeek = currentTime.dayOfWeek
-                }
-            }
+//            val currentTime = ZonedDateTime.now()
+//            dailyTimesInTimeRange(currentTime.minusDays(13), currentTime.minusDays(7)).let { pastWeek ->
+//                dailyTimesInTimeRange(currentTime.minusDays(6), currentTime).let { currentWeek ->
+//                    val currentList = currentWeek.map{ it.second.toMillis() }.toTypedArray()
+//                    val pastList = pastWeek.map{ it.second.toMillis() }.toTypedArray()
+//
+//                    weeklyChartEntryModelProducer.setEntries(
+//                        entriesOf(*pastList), entriesOf(*currentList)
+//                    )
+//
+//                    weeklyComparison.timeLastWeek = pastList.sum()
+//                    weeklyComparison.timeThisWeek = currentList.sum()
+//                    weeklyComparison.lastDayOfWeek = currentTime.dayOfWeek
+//                }
+//            }
+            if(currentComparisonWeek == 0) weeklyComparisonFor(currentComparisonWeek)
 
             updateMonthlyHeatmap()
         }
@@ -183,9 +331,9 @@ class TimeTrackerViewModel(
             }
         }
     }
-    fun dailyTimesInTimeRange(startDate: ZonedDateTime, endDate: ZonedDateTime, onDetermined: (List<Pair<Int, Duration>>) -> Unit) {
+    private suspend fun dailyTimesInTimeRange(startDate: ZonedDateTime, endDate: ZonedDateTime): MutableList<Pair<Int, Duration>> {
 
-        viewModelScope.launch {
+        val dailyTimes = viewModelScope.async {
             val durationPairs = mutableListOf<Pair<Int, Duration>>()
 
             Log.v("start", startDate.toString())
@@ -203,7 +351,7 @@ class TimeTrackerViewModel(
 
                 var earliestTimeInstant = startDateTime.toInstant()
 
-                println("earliest time instant $earliestTimeInstant")
+                //println("earliest time instant $earliestTimeInstant")
 
                 val trackedInLastWeek =
                     trackedTimes.trackedTimes.filter { it.endTime > earliestTimeInstant.toEpochMilli() && it.startTime != 0L }
@@ -218,10 +366,10 @@ class TimeTrackerViewModel(
                     earliestTimeInstant = earliestTimeInstant.plusMillis(millisecondsInDay)
                 }
 
-                times.forEach {
-                    println("start" + Instant.ofEpochMilli(it.startTime))
-                    println("end" + Instant.ofEpochMilli(it.endTime))
-                }
+//                times.forEach {
+//                    println("start" + Instant.ofEpochMilli(it.startTime))
+//                    println("end" + Instant.ofEpochMilli(it.endTime))
+//                }
 
                 val durations = times.map { Duration.ZERO }.toMutableList()
 
@@ -252,10 +400,13 @@ class TimeTrackerViewModel(
                     startDay++
                 }
 
-                onDetermined(durationPairs)
+                withContext(Dispatchers.Default) {
+                    return@withContext durationPairs
+                }
             }
-
         }
+
+        return dailyTimes.await()
     }
 
     fun dailyTimesInPastWeek() {

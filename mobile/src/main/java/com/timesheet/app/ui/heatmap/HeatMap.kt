@@ -1,5 +1,6 @@
 package com.timesheet.app.ui.heatmap
 
+import android.util.Log
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -16,11 +17,18 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Card
+import androidx.compose.material.Icon
+import androidx.compose.material.IconButton
 import androidx.compose.material.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.PlainTooltipBox
 import androidx.compose.material3.PlainTooltipState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -44,7 +52,9 @@ import com.timesheet.app.ui.EvenlySpacedRow
 import com.timesheet.app.ui.toCompressedTimeStamp
 import com.timesheet.app.view.model.ChartDataFormatter
 import com.timesheet.app.view.model.HeatMapData
+import com.timesheet.app.view.model.HistoricalStateFlow
 import com.timesheet.app.view.model.TimeSheetChartData
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 import java.time.DayOfWeek
 import java.time.Duration
@@ -108,11 +118,62 @@ fun HeatMapCell(modifier: Modifier = Modifier, label: String? = null, background
 @Composable
 fun HeatMap(
     modifier: Modifier = Modifier,
+    heatMapState: HistoricalStateFlow<HeatMapData>,
+    cellWidth: Dp = 45.dp,
+    columns: Int = 7,
+    retrieveData: (Int) -> Flow<HeatMapData>
+) {
+
+    var selected by remember { mutableStateOf(1) }
+
+    Log.v("SELECTED", selected.toString())
+
+    val presentMonthHeatMapData by heatMapState.current.collectAsState()
+    val previousMonthHeatMapData by retrieveData(selected).collectAsState(initial = HeatMapData())
+
+//    val current by
+//        if(selected == 0) heatMapState.current.collectAsState()
+//        else retrieveData(selected).collectAsState(initial = HeatMapData())
+
+    val current = if(selected > 0) previousMonthHeatMapData else presentMonthHeatMapData
+
+//    Log.v("CURRENT", current.toString())
+
+    Row(
+        horizontalArrangement = Arrangement.SpaceBetween,
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        IconButton(onClick = { selected++ }) {
+            Icon(
+                Icons.Default.KeyboardArrowLeft,
+                "Left"
+            )
+        }
+
+        current?.label?.let { Text(it) }
+
+        IconButton(onClick = {
+            if(selected > 0) selected--
+        }) {
+            Icon(
+                Icons.Default.KeyboardArrowRight,
+                "Right"
+            )
+        }
+    }
+
+    current?.let { HeatMapGrid(heatMapData = it) }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun HeatMapGrid(
+    modifier: Modifier = Modifier,
     heatMapData: HeatMapData,
     cellWidth: Dp = 45.dp,
     columns: Int = 7
 ) {
-
     val timeSheetChartData = heatMapData.chartData
     val offset = heatMapData.offset
     val valueFormatter = timeSheetChartData.valueFormatter
@@ -165,16 +226,14 @@ fun HeatMap(
                             backgroundColor = Color.White,
                             modifier = Modifier
                                 .width(cellWidth)
-                            )
+                        )
                     }
                 }
                 week.map { day ->
                     val dayOfMonth = dayCounter++
                     val label = labelFormatter.format(dayOfMonth, day)
                     val value = valueFormatter.format(dayOfMonth, day)
-                    println("day of month is $dayOfMonth")
-//                    println("label is $label")
-//                    println("value is $value")
+                    //println("day of month is $dayOfMonth")
 
                     val toolTipState = remember { PlainTooltipState() }
                     PlainTooltipBox(
@@ -186,7 +245,7 @@ fun HeatMap(
                     ) {
 
                         val colorRatio = day / maxValue
-                        println("color ration $colorRatio")
+                        //println("color ration $colorRatio")
                         HeatMapCell(
                             modifier = Modifier
                                 .size(45.dp)
@@ -208,7 +267,7 @@ fun HeatMap(
                             backgroundColor = Color.White,
                             modifier = Modifier
                                 .width(cellWidth)
-                            )
+                        )
                     }
                 }
             }

@@ -5,5 +5,6 @@ import java.time.LocalDateTime
 
 data class HeatMapDetails(
     val elements: List<Float>,
-    val firstDay: LocalDateTime = LocalDateTime.now()
+    val firstDay: LocalDateTime = LocalDateTime.now(),
+    val label: String? = null
 )

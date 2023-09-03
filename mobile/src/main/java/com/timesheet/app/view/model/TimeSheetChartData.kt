@@ -12,7 +12,8 @@ fun interface ChartDataFormatter {
 
 data class HeatMapData(
     val chartData: TimeSheetChartData = TimeSheetChartData(listOf()),
-    val offset: Int = 0
+    val offset: Int = 0,
+    val label: String? = null
 )
 
 val defaultValueFormatter = ChartDataFormatter { _: Int, fl: Float -> fl.toString() }
