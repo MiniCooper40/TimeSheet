@@ -23,6 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.timesheet.app.presentation.theme.Black
@@ -105,7 +106,7 @@ fun TrackerDetails(uid: Int, context: Context = LocalContext.current) {
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                     modifier = Modifier.padding(bottom = 20.dp, top = 8.dp)
                 ) {
-                    Text(timeTracker.title, style = MaterialTheme.typography.h2, color = White)
+                    Text(timeTracker.title, style = MaterialTheme.typography.h2.copy(textAlign = TextAlign.Center), color = White)
                     Stopwatch(timeTracker = timeTracker) {
                         timeTrackerViewModel.updateTrackerStartTime(context, timeTracker)
                     }
@@ -113,7 +114,8 @@ fun TrackerDetails(uid: Int, context: Context = LocalContext.current) {
             }
             Spacer(modifier = Modifier.size(20.dp))
             Column(
-                modifier = Modifier.padding(20.dp)
+                modifier = Modifier.padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(20.dp)
             ){
                 Section("Weekly comparison") {
                     TrackedTimeDailyChart(timeTrackerViewModel.chartModel) {
