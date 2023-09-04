@@ -1,6 +1,6 @@
-package com.timesheet.app.view.model
+package com.timesheet.app.view.data
 
-import com.timesheet.app.data.model.TimeTracker
+import com.timesheet.app.data.entity.TimeTracker
 import java.time.Duration
 
 data class TrackerMetrics(

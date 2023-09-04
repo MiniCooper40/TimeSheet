@@ -1,7 +1,6 @@
-package com.timesheet.app.data.model
+package com.timesheet.app.data.entity
 
 import androidx.room.Embedded
-import androidx.room.Entity
 import androidx.room.Relation
 
 data class TrackedTimes(

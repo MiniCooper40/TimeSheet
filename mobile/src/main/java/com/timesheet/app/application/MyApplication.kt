@@ -1,4 +1,4 @@
-package com.timesheet.app.view
+package com.timesheet.app.application
 
 import android.app.Application
 import com.timesheet.app.data.db.TimeSheetDatabase

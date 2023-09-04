@@ -1,4 +1,4 @@
-package com.timesheet.app.view
+package com.timesheet.app.view.model
 
 import android.util.Log
 import androidx.lifecycle.ViewModel
@@ -6,15 +6,13 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.createSavedStateHandle
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.CreationExtras
-import com.timesheet.app.data.dao.TimeTrackerDao
-import com.timesheet.app.data.model.TimeTracker
 import com.timesheet.app.data.repository.TimeTrackerRepository
 import com.timesheet.app.ui.table.TableSortType
-import com.timesheet.app.view.model.TimeTrackerChartData
+import com.timesheet.app.application.MyApplication
+import com.timesheet.app.view.data.TimeTrackerChartData
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import java.time.Duration
 import java.time.LocalDate
 
 class HomePageViewModel(

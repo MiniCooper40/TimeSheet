@@ -3,6 +3,8 @@ package com.timesheet.app.presentation.theme
 import androidx.compose.material.MaterialTheme
 import androidx.compose.runtime.Composable
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
+import com.timesheet.app.theme.Black
+import com.timesheet.app.theme.wearColorPalette
 
 @Composable
 fun TimeSheetTheme(

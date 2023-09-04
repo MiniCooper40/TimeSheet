@@ -5,8 +5,8 @@ import androidx.room.Insert
 import androidx.room.Query
 import androidx.room.Transaction
 import androidx.room.Update
-import com.timesheet.app.data.model.TimeTracker
-import com.timesheet.app.data.model.TrackedTimes
+import com.timesheet.app.data.entity.TimeTracker
+import com.timesheet.app.data.entity.TrackedTimes
 
 @Dao
 interface TimeTrackerDao {

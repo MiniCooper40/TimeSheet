@@ -24,8 +24,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.timesheet.app.data.model.TimeTracker
-import com.timesheet.app.data.model.TrackedTimes
+import com.timesheet.app.data.entity.TimeTracker
+import com.timesheet.app.data.entity.TrackedTimes
 import kotlinx.coroutines.delay
 import java.util.Date
 

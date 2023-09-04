@@ -3,11 +3,8 @@ package com.timesheet.app.data.repository
 import android.util.Log
 import com.timesheet.app.data.dao.TimeTrackerDao
 import com.timesheet.app.data.dao.TrackedTimeDao
-import com.timesheet.app.data.dao.TrackedTimesDao
-import com.timesheet.app.data.model.TimeTracker
-import com.timesheet.app.data.model.TrackedTime
-import com.timesheet.app.view.model.TimeTrackerChartData
-import com.timesheet.app.view.model.TrackerMetrics
+import com.timesheet.app.view.data.TimeTrackerChartData
+import com.timesheet.app.view.data.TrackerMetrics
 import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate

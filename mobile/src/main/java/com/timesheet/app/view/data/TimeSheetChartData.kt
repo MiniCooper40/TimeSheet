@@ -1,4 +1,4 @@
-package com.timesheet.app.view.model
+package com.timesheet.app.view.data
 
 data class TimeSheetChartData(
     val data: List<Float>,

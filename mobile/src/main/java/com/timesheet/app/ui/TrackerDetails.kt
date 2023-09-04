@@ -10,6 +10,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.Divider
+import androidx.compose.material.DropdownMenu
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Surface
 import androidx.compose.material.Text
@@ -26,13 +28,13 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.timesheet.app.presentation.theme.Black
-import com.timesheet.app.presentation.theme.Grey
-import com.timesheet.app.presentation.theme.White
+import com.timesheet.app.theme.Black
+import com.timesheet.app.theme.Grey
+import com.timesheet.app.theme.White
 import com.timesheet.app.ui.chart.Stopwatch
 import com.timesheet.app.ui.chart.TrackedTimeDailyChart
 import com.timesheet.app.ui.heatmap.HeatMap
-import com.timesheet.app.view.TimeTrackerViewModel
+import com.timesheet.app.view.model.TimeTrackerViewModel
 
 data class Day(
     val startTime: Long,
@@ -122,6 +124,7 @@ fun TrackerDetails(uid: Int, context: Context = LocalContext.current) {
                         timeTrackerViewModel.weeklyComparisonFor(it)
                     }
                 }
+                Divider()
                 Section("Monthly heatmap") {
                     HeatMap(
                         heatMapState = heatMapState

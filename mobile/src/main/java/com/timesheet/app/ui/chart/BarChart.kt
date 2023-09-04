@@ -63,17 +63,16 @@ import com.patrykandpatrick.vico.core.context.MeasureContext
 import com.patrykandpatrick.vico.core.dimensions.MutableDimensions
 import com.patrykandpatrick.vico.core.marker.Marker
 import com.patrykandpatrick.vico.core.marker.MarkerLabelFormatter
-import com.timesheet.app.data.model.TimeTracker
-import com.timesheet.app.presentation.theme.Black
-import com.timesheet.app.presentation.theme.Grey
+import com.timesheet.app.data.entity.TimeTracker
+import com.timesheet.app.theme.Black
+import com.timesheet.app.theme.Grey
 import com.timesheet.app.presentation.theme.TimeSheetTheme
-import com.timesheet.app.presentation.theme.White
+import com.timesheet.app.theme.White
 import com.timesheet.app.ui.IconDetails
 import com.timesheet.app.ui.TimeTrackerStamp
 import com.timesheet.app.ui.toCompressedTimeStamp
-import com.timesheet.app.view.TimeSpanComparisonChartModel
-import com.timesheet.app.view.TimeTrackerComparisonChartModel
-import com.timesheet.app.view.TrackedTimeSpan
+import com.timesheet.app.view.model.TimeTrackerComparisonChartModel
+import com.timesheet.app.view.model.TrackedTimeSpan
 import java.time.DayOfWeek
 
 

@@ -23,8 +23,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.app.timesheet.R
-import com.timesheet.app.data.model.TimeTracker
-import com.timesheet.app.view.TimeSheetViewModel
+import com.timesheet.app.data.entity.TimeTracker
+import com.timesheet.app.view.model.TimeSheetViewModel
 
 @Composable
 fun TrackerForm(timeSheetViewModel: TimeSheetViewModel, context: Context = LocalContext.current) {

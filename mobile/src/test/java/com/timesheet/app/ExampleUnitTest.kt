@@ -1,7 +1,7 @@
 package com.timesheet.app
 
 import com.timesheet.app.ui.heatmap.chartDataToMonth
-import com.timesheet.app.view.model.TimeSheetChartData
+import com.timesheet.app.view.data.TimeSheetChartData
 import org.junit.Test
 
 import org.junit.Assert.*

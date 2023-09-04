@@ -25,10 +25,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.timesheet.app.presentation.theme.White
+import com.timesheet.app.presentation.theme.TimeSheetTheme
+import com.timesheet.app.theme.White
+import com.timesheet.app.theme.wearColorPalette
 import com.timesheet.app.ui.toCompressedTimeStamp
-import com.timesheet.app.view.model.TimeTrackerChartData
-import com.timesheet.app.view.model.TrackerMetrics
+import com.timesheet.app.view.data.TimeTrackerChartData
+import com.timesheet.app.view.data.TrackerMetrics
 
 @Composable
 fun ChartTitle(title: String, onClick: () -> Unit) {
@@ -89,41 +91,44 @@ fun TableRow(
     }
 
 
-    Row(
-        horizontalArrangement = Arrangement.SpaceEvenly,
-        modifier = modifier
-            .fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-
-        val cells: List<Pair<Any, Float>> = listOf(
-            toCompressedTimeStamp(trackedMetrics.duration.toMillis()) to 1.5f,
-            String.format("%.2f", trackedMetrics.percentage) to 1.2f,
-            trackedMetrics.sessions to 0.8f
-        )
-
-        Surface(
-            Modifier
-                .fillMaxWidth()
-                .weight(2f)
-                .padding(start = 6.dp, end = 6.dp, top = 6.dp, bottom = 6.dp)
-                .clickable { navigateTo(trackedMetrics.timeTracker.uid) },
-            shape = RoundedCornerShape(25),
+    TimeSheetTheme {
+        Row(
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            modifier = modifier
+                .fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Cell(
-                trackedMetrics.timeTracker.title,
-                Modifier
-            )
-        }
 
-        cells.mapIndexed { index, item ->
-            Cell(
-                item.first,
-                Modifier
-                    .fillMaxWidth()
-                    .weight(item.second)
-                    .padding(start = 6.dp, end = 6.dp, top = 4.dp, bottom = 4.dp)
+            val cells: List<Pair<Any, Float>> = listOf(
+                toCompressedTimeStamp(trackedMetrics.duration.toMillis()) to 1.5f,
+                String.format("%.2f", trackedMetrics.percentage) to 1.2f,
+                trackedMetrics.sessions to 0.8f
             )
+
+            Surface(
+                shape = RoundedCornerShape(25),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(2f)
+                    .padding(start = 6.dp, end = 6.dp, top = 6.dp, bottom = 6.dp)
+                    .clickable { navigateTo(trackedMetrics.timeTracker.uid) },
+                color = wearColorPalette.primary
+            ) {
+                Cell(
+                    trackedMetrics.timeTracker.title,
+                    Modifier
+                )
+            }
+
+            cells.mapIndexed { index, item ->
+                Cell(
+                    item.first,
+                    Modifier
+                        .fillMaxWidth()
+                        .weight(item.second)
+                        .padding(start = 6.dp, end = 6.dp, top = 4.dp, bottom = 4.dp)
+                )
+            }
         }
     }
 }

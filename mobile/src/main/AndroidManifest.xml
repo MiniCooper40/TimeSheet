@@ -4,7 +4,7 @@
 
     <application
         android:allowBackup="false"
-        android:name="com.timesheet.app.view.MyApplication"
+        android:name="com.timesheet.app.application.MyApplication"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
         android:icon="@mipmap/ic_launcher"

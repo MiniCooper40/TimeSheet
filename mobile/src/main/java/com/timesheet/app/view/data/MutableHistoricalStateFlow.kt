@@ -1,4 +1,4 @@
-package com.timesheet.app.view.model
+package com.timesheet.app.view.data
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
