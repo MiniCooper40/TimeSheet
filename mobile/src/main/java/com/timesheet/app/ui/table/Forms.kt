@@ -75,7 +75,9 @@ fun FormTextInput(title: String, value: TextFieldValue, onChange: (TextFieldValu
 @Composable
 fun Form(title: String = "Form", onSubmit: () -> Unit, content: @Composable () -> Unit) {
 
-    Section(title) {
+    Section(
+        title = title
+    ) {
         content()
         TextButton(onClick = onSubmit) {
             Text("Submit")
@@ -107,7 +109,9 @@ fun ColorSelection(onSelectedColor: (Color) -> Unit) {
 
 @Composable
 fun ColorSelectionPopup(
-    default: Color = Color.Gray, onDismissRequest: () -> Unit, onSelectedColor: (Color) -> Unit
+    default: Color = Color.Gray,
+    onDismissRequest: () -> Unit,
+    onSelectedColor: (Color) -> Unit
 ) {
 
     var color by remember { mutableStateOf(default) }
@@ -235,11 +239,11 @@ fun TrackerForm(
 }
 
 @Composable
-fun CreateTracker(context: Context = LocalContext.current) {
+fun CreateTracker(context: Context = LocalContext.current, onComplete: () -> Unit) {
 
     val timeSheetViewModel: TimeSheetViewModel = viewModel(factory = TimeSheetViewModel.Factory)
 
-    TrackerForm {form ->
+    TrackerForm { form ->
         timeSheetViewModel.createTracker(
             context,
             TimeTracker(
@@ -248,6 +252,7 @@ fun CreateTracker(context: Context = LocalContext.current) {
                 color = form.color.toArgb()
             )
         )
+        onComplete()
     }
 }
 
@@ -257,6 +262,20 @@ data class GroupFormData(
     val trackerIds: List<Int> = listOf(),
     val color: Color = Color.Gray
 )
+
+@Composable
+fun MiniTrackerChip(modifier: Modifier = Modifier, tracker: TimeTracker, content: @Composable (() -> Unit)? = null) {
+
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(3.dp),
+        modifier = modifier
+    ) {
+        content?.let { it() }
+        Text(tracker.title)
+        Circle(size = 14.dp, color = Color(tracker.color))
+    }
+}
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -268,20 +287,14 @@ fun TrackerSelector(
 
     FlowRow {
         trackers.map { tracker ->
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(3.dp)
-            ) {
+            MiniTrackerChip(tracker = tracker) {
                 Checkbox(
                     checked = selectedTrackerUIDs.contains(tracker.uid),
                     onCheckedChange = { toggleSelectionOfTrackerUID(tracker.uid) }
                 )
-                Text(tracker.title)
-                Circle(size = 14.dp, color = Color(tracker.color))
             }
         }
     }
-
 }
 
 @Composable
@@ -377,7 +390,6 @@ fun GroupForm(
 ) {
 
 
-
     var popup: PopupType? by remember { mutableStateOf(null) }
 
     var selectedUIDs by remember { mutableStateOf(default.trackerIds.toSet()) }
@@ -471,7 +483,7 @@ fun GroupForm(
 }
 
 @Composable
-fun CreateGroup() {
+fun CreateGroup(onComplete: () -> Unit) {
 
     val timeSheetViewModel: TimeSheetViewModel = viewModel(factory = TimeSheetViewModel.Factory)
 
@@ -480,7 +492,7 @@ fun CreateGroup() {
 
     GroupForm(
         trackers = trackers
-    ) {form ->
+    ) { form ->
         Log.v("GROUP CREATED", form.toString())
         val group = TrackerGroup(
             title = form.title,
@@ -494,5 +506,7 @@ fun CreateGroup() {
             group,
             trackersInGroup
         )
+
+        onComplete()
     }
 }

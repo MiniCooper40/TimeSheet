@@ -2,19 +2,19 @@ package com.timesheet.app.ui.table
 
 import com.timesheet.app.view.data.TimeTrackerChartData
 
-sealed class TableSortType {
+sealed class ChartDataSorter {
 
     abstract var descending: Boolean
     abstract fun sort(timeTrackerChartData: TimeTrackerChartData): TimeTrackerChartData
 }
 
-class NoSort(override var descending: Boolean = true) : TableSortType() {
+class NoSort(override var descending: Boolean = true) : ChartDataSorter() {
     override fun sort(timeTrackerChartData: TimeTrackerChartData): TimeTrackerChartData {
         return timeTrackerChartData
     }
 }
 
-class Duration(override var descending: Boolean = true) : TableSortType() {
+class DurationSorter(override var descending: Boolean = true) : ChartDataSorter() {
     override fun sort(timeTrackerChartData: TimeTrackerChartData): TimeTrackerChartData {
         return timeTrackerChartData.copy(
             tracked = if(descending) timeTrackerChartData.tracked.sortedByDescending { it.duration.toMillis() }
@@ -23,7 +23,7 @@ class Duration(override var descending: Boolean = true) : TableSortType() {
     }
 }
 
-class Sessions(override var descending: Boolean = true) : TableSortType() {
+class SessionSorter(override var descending: Boolean = true) : ChartDataSorter() {
     override fun sort(timeTrackerChartData: TimeTrackerChartData): TimeTrackerChartData {
         return timeTrackerChartData.copy(
             tracked = if(descending) timeTrackerChartData.tracked.sortedByDescending { it.sessions }
@@ -32,7 +32,7 @@ class Sessions(override var descending: Boolean = true) : TableSortType() {
     }
 }
 
-class Alphabetical(override var descending: Boolean = true) : TableSortType() {
+class AlphabeticalSorter(override var descending: Boolean = true) : ChartDataSorter() {
     override fun sort(timeTrackerChartData: TimeTrackerChartData): TimeTrackerChartData {
         return timeTrackerChartData.copy(
             tracked = if(descending) timeTrackerChartData.tracked.sortedByDescending { it.timeTracker.title }

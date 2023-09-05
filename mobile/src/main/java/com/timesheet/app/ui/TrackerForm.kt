@@ -57,7 +57,8 @@ private enum class PopupType {
 fun TrackerForm(
     timeSheetViewModel: TimeSheetViewModel,
     navigateToTrackerForm: () -> Unit,
-    navigateToGroupForm: () -> Unit
+    navigateToGroupForm: () -> Unit,
+    navigateToGroup: (Int) -> Unit
 ) {
 
     val groups by timeSheetViewModel.trackerGroups.collectAsState()
@@ -88,60 +89,29 @@ fun TrackerForm(
                 Text("Create group")
             }
 
-            Log.v("Groups", Arrays.deepToString(groups.toTypedArray()))
-
-            groups.forEach {groupWithTrackers ->
-
-                //Log.v("GROUP", groupWithTrackers.toString())
-
-                val group = groupWithTrackers.group
-                val trackers = groupWithTrackers.trackers
-
-                Row {
-
-                    Text(group.title)
-                    Column {
-                        trackers.map {tracker ->
-                            Text(tracker.title)
-                        }
-                    }
-                }
-            }
+//            Log.v("Groups", groups.toTypedArray().contentDeepToString())
+//
+//            groups.forEach {groupWithTrackers ->
+//
+//                //Log.v("GROUP", groupWithTrackers.toString())
+//
+//                val group = groupWithTrackers.group
+//                val trackers = groupWithTrackers.trackers
+//
+//                Row {
+//
+//                    TextButton(
+//                        content = { Text(group.title) },
+//                        onClick = { navigateToGroup(group.uid) }
+//                    )
+//                    Column {
+//                        trackers.map {tracker ->
+//                            Text(tracker.title)
+//                        }
+//                    }
+//                }
+//            }
 
         }
-
-//        when (openPopup) {
-//            PopupType.Tracker -> {
-//                FormPopup(onDismissRequest = { openPopup = null }, onSubmit = {
-//                    if (trackerTitle.text.isNotEmpty()) {
-//                        timeSheetViewModel.createTracker(
-//                            context = context,
-//                            tracker = TimeTracker(
-//                                trackerTitle.text
-//                            )
-//                        )
-//                        openPopup = null
-//                    }
-//                }) {
-//                    FormTextInput(title = "Tracker name", value = trackerTitle) {
-//                        trackerTitle = it
-//                    }
-//                }
-//            }
-//
-//            PopupType.Group -> {
-//                FormPopup(
-//                    onDismissRequest = { openPopup = null },
-//                    onSubmit = { Log.v("Submit", "GROUP FORM SUBMITTED.") }) {
-////                    FormTextInput(title = "Group name", value = groupTitle) {
-////                        groupTitle = it
-////                    }
-//                }
-//            }
-//
-//            null -> {
-//
-//            }
-//        }
     }
 }

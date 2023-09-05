@@ -44,6 +44,10 @@ interface TimeTrackerDao {
     @Query("SELECT * FROM TrackerGroup")
     suspend fun getTrackerGroupsWithMembers(): List<GroupWithTrackers>
 
+    @Transaction
+    @Query("SELECT * FROM TrackerGroup WHERE uid = :uid")
+    suspend fun getTrackerGroupByGroupUid(uid: Int): GroupWithTrackers
+
     @Query("SELECT COUNT(*) FROM tracked_time WHERE tracker_uid = :uid")
     suspend fun numberOfTrackersForUid(uid: Int): Int
 

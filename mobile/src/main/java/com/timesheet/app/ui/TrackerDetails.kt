@@ -78,6 +78,23 @@ data class IconDetails(
     val tint: Color = Grey
 )
 
+@Composable
+fun Banner(title: String, content: @Composable () -> Unit) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Black),
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+            modifier = Modifier.padding(bottom = 20.dp, top = 8.dp)
+        ) {
+            Text(title, style = MaterialTheme.typography.h2.copy(textAlign = TextAlign.Center), color = White)
+            content()
+        }
+    }
+}
 
 @Composable
 fun TrackerDetails(uid: Int, context: Context = LocalContext.current) {
@@ -98,20 +115,9 @@ fun TrackerDetails(uid: Int, context: Context = LocalContext.current) {
             modifier = Modifier
                 .verticalScroll(scrollState),
         ) {
-            Surface(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(Black),
-            ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
-                    modifier = Modifier.padding(bottom = 20.dp, top = 8.dp)
-                ) {
-                    Text(timeTracker.title, style = MaterialTheme.typography.h2.copy(textAlign = TextAlign.Center), color = White)
-                    Stopwatch(timeTracker = timeTracker) {
-                        timeTrackerViewModel.updateTrackerStartTime(context, timeTracker)
-                    }
+            Banner(timeTracker.title) {
+                Stopwatch(timeTracker = timeTracker) {
+                    timeTrackerViewModel.updateTrackerStartTime(context, timeTracker)
                 }
             }
             Spacer(modifier = Modifier.size(20.dp))
@@ -119,13 +125,13 @@ fun TrackerDetails(uid: Int, context: Context = LocalContext.current) {
                 modifier = Modifier.padding(20.dp),
                 verticalArrangement = Arrangement.spacedBy(20.dp)
             ){
-                Section("Weekly comparison") {
+                Section(title = "Weekly comparison") {
                     TrackedTimeDailyChart(timeTrackerViewModel.chartModel) {
                         timeTrackerViewModel.weeklyComparisonFor(it)
                     }
                 }
                 Divider()
-                Section("Monthly heatmap") {
+                Section(title = "Monthly heatmap") {
                     HeatMap(
                         heatMapState = heatMapState
                     ) {

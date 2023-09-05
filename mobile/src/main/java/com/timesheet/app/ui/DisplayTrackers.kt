@@ -41,30 +41,24 @@ fun DisplayTrackers(
         currentTime = System.currentTimeMillis()
     })
 
-
-    Log.v("NUM TRACKERS", maxNumberOfTrackers.toString())
-
-    Column(
-        modifier = Modifier
-            .verticalScroll(rememberScrollState())
-            .fillMaxWidth()
-            .padding(4.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(10.dp)
-    ) {
-        state.trackers.take(maxNumberOfTrackers).map {
-            val trackedTimes by timeSheetViewModel.trackedTimesFor(it.uid).collectAsState(initial = null)
-            trackedTimes?.let {
-                TrackerChip(
-                    it.trackedTimes,
-                    onClick = { navigateTo(it.trackedTimes.timeTracker.uid) },
-                    toggleTracking = {
-                        timeSheetViewModel.updateTrackerStartTime(
-                            context,
-                            it.trackedTimes.timeTracker
+    VerticalScrollArea {
+        SectionColumn {
+            Section(title = "Trackers") {
+                state.trackers.take(maxNumberOfTrackers).map {
+                    val trackedTimes by timeSheetViewModel.trackedTimesFor(it.uid).collectAsState(initial = null)
+                    trackedTimes?.let {
+                        TrackerChip(
+                            it.trackedTimes,
+                            onClick = { navigateTo(it.trackedTimes.timeTracker.uid) },
+                            toggleTracking = {
+                                timeSheetViewModel.updateTrackerStartTime(
+                                    context,
+                                    it.trackedTimes.timeTracker
+                                )
+                            }
                         )
                     }
-                )
+                }
             }
         }
     }

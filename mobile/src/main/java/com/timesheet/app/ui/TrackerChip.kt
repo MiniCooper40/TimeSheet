@@ -26,6 +26,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.timesheet.app.data.entity.TimeTracker
 import com.timesheet.app.data.entity.TrackedTimes
+import com.timesheet.app.theme.wearColorPalette
 import kotlinx.coroutines.delay
 import java.util.Date
 
@@ -57,7 +58,10 @@ fun TrackerChip(state: TrackedTimes?, onClick: () -> Unit, toggleTracking: () ->
 
         Card(
             modifier = Modifier
-                .clickable { onClick()  }
+                .clickable { onClick()  },
+            backgroundColor = wearColorPalette.background,
+            elevation = 3.dp
+
         ) {
             Column(
                 modifier = Modifier
@@ -70,7 +74,13 @@ fun TrackerChip(state: TrackedTimes?, onClick: () -> Unit, toggleTracking: () ->
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(text = tracker.title, style = MaterialTheme.typography.h4)
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(text = tracker.title, style = MaterialTheme.typography.h4)
+                        Circle(size = 20.dp, color = tracker.color)
+                    }
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(10.dp)

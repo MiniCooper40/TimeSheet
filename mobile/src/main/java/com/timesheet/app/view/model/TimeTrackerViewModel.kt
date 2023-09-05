@@ -204,11 +204,14 @@ class TimeTrackerViewModel(
 
     fun weeklyComparisonFor(week: Int) {
 
+
         viewModelScope.launch {
 
             val weeklyStrategy = preferencesRepository.getWeeklyStrategy()
 
             val currentTime = ZonedDateTime.now()
+
+            Log.v("Current time", "$currentTime, week is $week")
 
             Log.v("WEEKLY STRATEGY", weeklyStrategy.toString())
 
@@ -220,9 +223,15 @@ class TimeTrackerViewModel(
                     val currentStartDay = currentTime.dayOfWeek.value
                     Log.v("CURRENT START DAY", currentTime.dayOfWeek.toString())
 
-                    currentTime.minusWeeks(week.toLong()).minusDays((currentStartDay - cycleStartDay.value).toLong())
+                    val diff = currentStartDay - cycleStartDay.value
+                    val daysToAdd =
+                        if(diff < 0) diff + 7
+                        else diff
+                    currentTime.minusWeeks(week.toLong()).minusDays((daysToAdd).toLong())
                 }
             }
+
+            Log.v("REL REC START", relativeRecentTimeSpanStart.toString())
 
             val previousTimeSpanStart = relativeRecentTimeSpanStart.minusDays(7)
             val previousTimeSpanEnd = relativeRecentTimeSpanStart.minusDays(1)

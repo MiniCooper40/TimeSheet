@@ -9,6 +9,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.Card
 import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
@@ -80,6 +82,14 @@ fun Circle(size: Dp, color: Color) {
 }
 
 @Composable
+fun Circle(size: Dp, color: Int) {
+    Circle(
+        size,
+        Color(color)
+    )
+}
+
+@Composable
 fun TimeSheetPopup(onDismissRequest: () -> Unit, content: @Composable () -> Unit) {
     Popup(
         alignment = Alignment.Center,
@@ -103,14 +113,35 @@ fun TimeSheetPopup(onDismissRequest: () -> Unit, content: @Composable () -> Unit
     }
 }
 
+@Composable
+fun VerticalScrollArea(content: @Composable () -> Unit) {
+    Column(
+        modifier = Modifier
+            .verticalScroll(rememberScrollState())
+    ) {
+        content()
+    }
+}
 
 @Composable
-fun Section(title: String, content: @Composable () -> Unit) {
+fun Section(
+    modifier: Modifier = Modifier,
+    title: String,
+    horizontalAlignment: Alignment.Horizontal = Alignment.Start,
+    content: @Composable () -> Unit
+) {
     Column(
-        horizontalAlignment = Alignment.Start,
+        horizontalAlignment = horizontalAlignment,
         verticalArrangement = Arrangement.spacedBy(12.dp),
+        modifier = modifier
     ) {
-        Text(text = title, style = MaterialTheme.typography.subtitle1)
+        Row(
+            modifier = modifier,
+            horizontalArrangement = Arrangement.Start
+        ) {
+            Text(text = title, style = MaterialTheme.typography.subtitle1)
+        }
+
         content()
     }
 }

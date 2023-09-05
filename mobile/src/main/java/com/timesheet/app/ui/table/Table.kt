@@ -136,7 +136,7 @@ fun TableRow(
 @Composable
 fun Table(
     chartData: TimeTrackerChartData,
-    sortBy: (TableSortType) -> Unit,
+    sortBy: (ChartDataSorter) -> Unit,
     navigateTo: (Int) -> Unit
 ) {
 
@@ -144,9 +144,9 @@ fun Table(
     var textStyle by remember { mutableStateOf(textStyleBody1) }
     var readyToDraw by remember { mutableStateOf(false) }
 
-    var sortType: TableSortType by remember { mutableStateOf(NoSort()) }
+    var sortType: ChartDataSorter by remember { mutableStateOf(NoSort()) }
 
-    fun updateSort(newSortType: TableSortType) {
+    fun updateSort(newSortType: ChartDataSorter) {
         if (sortType::class == newSortType::class) sortType.descending = !sortType.descending
         else sortType = newSortType
         sortBy(sortType)
@@ -167,12 +167,12 @@ fun Table(
                 ChartTitleData(
                     "Duration",
                     1.5f
-                ) { updateSort(Duration()) },
+                ) { updateSort(DurationSorter()) },
                 ChartTitleData(
                     "Relative",
                     1.2f
-                ) { updateSort(Duration()) },
-                ChartTitleData("Sessions", 0.8f) { updateSort(Sessions()) }
+                ) { updateSort(DurationSorter()) },
+                ChartTitleData("Sessions", 0.8f) { updateSort(SessionSorter()) }
             )
             Box(
                 modifier = Modifier
@@ -180,7 +180,7 @@ fun Table(
                     .weight(2f),
 
                 ) {
-                ChartTitle("Tracker") { updateSort(Alphabetical()) }
+                ChartTitle("Tracker") { updateSort(AlphabeticalSorter()) }
             }
             titles.map {
                 Box(

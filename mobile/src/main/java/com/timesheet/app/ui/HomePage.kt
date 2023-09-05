@@ -1,8 +1,12 @@
 package com.timesheet.app.ui
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material.Card
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
@@ -16,71 +20,57 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.timesheet.app.data.entity.GroupWithTrackers
+import com.timesheet.app.theme.wearColorPalette
 import com.timesheet.app.ui.pie.Legend
 import com.timesheet.app.ui.pie.PieChart
 import com.timesheet.app.ui.pie.PieChartSlice
 import com.timesheet.app.ui.table.Table
 import com.timesheet.app.view.model.HomePageViewModel
+import com.timesheet.app.view.model.TimeSheetViewModel
 import java.util.Random
 
 
 @Composable
-fun HomePage(navigateTo: (Int) -> Unit) {
+fun GroupPreview(groupWithTrackers: GroupWithTrackers, onClick: () -> Unit) {
+    val group = groupWithTrackers.group
+    val trackers = groupWithTrackers.trackers
 
-    val homePageViewModel: HomePageViewModel = viewModel(factory = HomePageViewModel.Factory)
-
-    val state by homePageViewModel.lastWeekData.collectAsState()
-
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(20.dp)
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() },
+        backgroundColor = wearColorPalette.background,
+        elevation = 3.dp
     ) {
-
-        val rnd = Random()
-
-        val data = state.tracked.map { tracked ->
-            PieChartSlice(
-                Color(rnd.nextInt(256), rnd.nextInt(256), rnd.nextInt(256)),
-                tracked.duration.toMillis(),
-                tracked.timeTracker.title,
-                uid = tracked.timeTracker.uid
-            ) {
-                Text(tracked.timeTracker.title)
-                Text(
-                    toCompressedTimeStamp(tracked.duration.toMillis()),
-                    style = MaterialTheme.typography.h3
-                )
-                Text(
-                    "${
-                        String.format(
-                            "%.2f",
-                            tracked.percentage
-                        )
-                    }%. ${tracked.sessions} session${if (tracked.sessions == 1) "" else "s"}."
-                )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(10.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            LabeledEntry(group.title) {
+                MiniTrackerChipFlowRow(trackers)
             }
         }
-
-        Sections(
-            mapOf(
-                1 to Section(
-                    icon = Icons.Default.DateRange,
-                    title = "Table"
-                ) {
-                    Table(
-                        chartData = state,
-                        navigateTo = { navigateTo(it) },
-                        sortBy = { homePageViewModel.sortWeeklyBy(it) })
-                },
-                2 to Section(
-                    icon = Icons.Default.AccountCircle,
-                    title = "Pie Chart"
-                ) {
-                    PieChart(data)
-                    Legend(data.map { it.color to it.title })
-                }
-            )
-        )
     }
+}
+
+@Composable
+fun HomePage(timeSheetViewModel: TimeSheetViewModel, navigateTo: (Int) -> Unit) {
+
+    val groups by timeSheetViewModel.trackerGroups.collectAsState()
+
+    SectionColumn {
+        Section(title = "Groups") {
+            groups.map {
+                GroupPreview(groupWithTrackers = it) {
+                    navigateTo(it.group.uid)
+                }
+            }
+        }
+    }
+
+
 }

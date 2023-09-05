@@ -33,9 +33,11 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import androidx.navigation.navOptions
 import com.timesheet.app.presentation.theme.TimeSheetTheme
 import com.timesheet.app.theme.wearColorPalette
 import com.timesheet.app.ui.DisplayTrackers
+import com.timesheet.app.ui.GroupDetails
 import com.timesheet.app.ui.HomePage
 import com.timesheet.app.ui.Preferences
 import com.timesheet.app.ui.TrackerDetails
@@ -66,11 +68,14 @@ class MainActivity : ComponentActivity() {
 fun MainApp(timeSheetViewModel: TimeSheetViewModel) {
 
     val navController = rememberNavController()
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentDestination = navBackStackEntry?.destination
 
     fun navigateTo(route: String) {
         navController.navigate(route) {
             popUpTo(navController.graph.findStartDestination().id) {
                 saveState = true
+                this.inclusive = true
             }
 
             launchSingleTop = true
@@ -90,6 +95,21 @@ fun MainApp(timeSheetViewModel: TimeSheetViewModel) {
                 .build()
         )
     }
+
+    fun navigateToGroup(uid: Int) {
+        navController.navigate(
+            "group/$uid",
+            navOptions = NavOptions
+                .Builder()
+                .setExitAnim(0)
+                .setExitAnim(0)
+                .setPopEnterAnim(0)
+                .setPopExitAnim(0)
+                .build()
+        )
+    }
+
+    fun goBack() = navController.navigateUp()
 
     TimeSheetTheme {
         Scaffold(
@@ -119,7 +139,7 @@ fun MainApp(timeSheetViewModel: TimeSheetViewModel) {
                     },
                     navigationIcon = {
 
-                        IconButton(onClick = { navController.navigateUp() }) {
+                        IconButton(onClick = { goBack() }) {
                             Icon(
                                 Icons.Filled.ArrowBack,
                                 "BACK",
@@ -135,8 +155,6 @@ fun MainApp(timeSheetViewModel: TimeSheetViewModel) {
                     backgroundColor = wearColorPalette.primary,
                     contentColor = wearColorPalette.onPrimary
                 ) {
-                    val navBackStackEntry by navController.currentBackStackEntryAsState()
-                    val currentDestination = navBackStackEntry?.destination
                     BottomNavigationItem(
                         selected = currentDestination?.hierarchy?.any { it.route == "home" } == true,
                         onClick = { navigateTo("home") },
@@ -149,22 +167,28 @@ fun MainApp(timeSheetViewModel: TimeSheetViewModel) {
                         Icon(Icons.Default.Add, "Add button")
                     }
 
-                    BottomNavigationItem(
-                        selected = currentDestination?.hierarchy?.any { it.route == "list" } == true,
-                        onClick = { navigateTo("list") },
-                        icon = {
-                            Icon(
-                                Icons.Default.List,
-                                "List button",
-                                tint = wearColorPalette.onPrimary
-                            )
-                        }
-                    )
+                    if(navBackStackEntry != null) {
+                        BottomNavigationItem(
+                            selected = currentDestination?.hierarchy?.any { it.route == "list" } == true,
+                            onClick = { navigateTo("list") },
+                            icon = {
+                                Icon(
+                                    Icons.Default.List,
+                                    "List button",
+                                    tint = wearColorPalette.onPrimary
+                                )
+                            }
+                        )
+                    }
                 }
             }
         ) { it ->
             NavHost(navController, startDestination = "home", Modifier.padding(it)) {
-                composable("home") { HomePage(navigateTo = { uid -> navigateToTracker((uid)) }) }
+                composable("home") {
+                    HomePage(
+                        timeSheetViewModel = timeSheetViewModel,
+                        navigateTo = { navigateToGroup(it) })
+                }
                 composable("list") {
                     DisplayTrackers(
                         timeSheetViewModel = timeSheetViewModel,
@@ -173,17 +197,30 @@ fun MainApp(timeSheetViewModel: TimeSheetViewModel) {
                 composable("create") {
                     TrackerForm(
                         timeSheetViewModel = timeSheetViewModel,
-                        navigateToGroupForm = { navigateTo("create/group") },
-                        navigateToTrackerForm = { navigateTo("create/tracker") }
+                        navigateToGroupForm = { navigateTo("group/create") },
+                        navigateToTrackerForm = { navigateTo("tracker/create") },
+                        navigateToGroup = { navigateToGroup(it) }
                     )
                 }
-                composable("create/tracker") { CreateTracker() }
-                composable("create/group") { CreateGroup() }
+                composable("tracker/create") { CreateTracker { goBack() } }
+                composable("group/create") { CreateGroup { goBack() } }
                 composable(
                     "tracker/{uid}",
                     arguments = listOf(navArgument("uid") { type = NavType.IntType })
                 ) {
                     it.arguments?.getInt("uid")?.let { uid -> TrackerDetails(uid = uid) }
+                }
+                composable(
+                    "group/{uid}",
+                    arguments = listOf(navArgument("uid") { type = NavType.IntType })
+                ) {
+                    it.arguments?.getInt("uid")?.let { uid ->
+                        GroupDetails(
+                            uid = uid
+                        ) { trackerUid ->
+                            navigateToTracker(trackerUid)
+                        }
+                    }
                 }
                 composable("preferences") {
                     Preferences()
