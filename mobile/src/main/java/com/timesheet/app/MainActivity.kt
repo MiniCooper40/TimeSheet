@@ -1,7 +1,6 @@
 package com.timesheet.app.presentation
 
 import android.os.Bundle
-import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
@@ -41,6 +40,9 @@ import com.timesheet.app.ui.HomePage
 import com.timesheet.app.ui.Preferences
 import com.timesheet.app.ui.TrackerDetails
 import com.timesheet.app.ui.TrackerForm
+import com.timesheet.app.ui.table.CreateGroup
+import com.timesheet.app.ui.table.CreateTracker
+import com.timesheet.app.ui.table.TrackerForm
 import com.timesheet.app.view.model.TimeSheetViewModel
 
 
@@ -64,6 +66,17 @@ class MainActivity : ComponentActivity() {
 fun MainApp(timeSheetViewModel: TimeSheetViewModel) {
 
     val navController = rememberNavController()
+
+    fun navigateTo(route: String) {
+        navController.navigate(route) {
+            popUpTo(navController.graph.findStartDestination().id) {
+                saveState = true
+            }
+
+            launchSingleTop = true
+            restoreState = true
+        }
+    }
 
     fun navigateToTracker(uid: Int) {
         navController.navigate(
@@ -96,16 +109,7 @@ fun MainApp(timeSheetViewModel: TimeSheetViewModel) {
                         )
                     },
                     actions = {
-                        IconButton(onClick = {
-                            navController.navigate("preferences") {
-                                popUpTo(navController.graph.findStartDestination().id) {
-                                    saveState = true
-                                }
-
-                                launchSingleTop = true
-                                restoreState = true
-                            }
-                        }) {
+                        IconButton(onClick = { navigateTo("preferences") }) {
                             Icon(
                                 Icons.Filled.Settings,
                                 "Settings",
@@ -135,46 +139,19 @@ fun MainApp(timeSheetViewModel: TimeSheetViewModel) {
                     val currentDestination = navBackStackEntry?.destination
                     BottomNavigationItem(
                         selected = currentDestination?.hierarchy?.any { it.route == "home" } == true,
-                        onClick = {
-                            navController.navigate("home") {
-                                popUpTo(navController.graph.findStartDestination().id) {
-                                    saveState = true
-                                }
-
-                                launchSingleTop = true
-                                restoreState = true
-                            }
-                        },
+                        onClick = { navigateTo("home") },
                         icon = {
                             Icon(Icons.Default.Home, "Home button")
                         }
                     )
 
-                    FloatingActionButton(onClick = {
-                        navController.navigate("create") {
-                            popUpTo(navController.graph.findStartDestination().id) {
-                                saveState = true
-                            }
-
-                            launchSingleTop = true
-                            restoreState = true
-                        }
-                    }) {
+                    FloatingActionButton(onClick = { navigateTo("create") }) {
                         Icon(Icons.Default.Add, "Add button")
                     }
 
                     BottomNavigationItem(
                         selected = currentDestination?.hierarchy?.any { it.route == "list" } == true,
-                        onClick = {
-                            navController.navigate("list") {
-                                popUpTo(navController.graph.findStartDestination().id) {
-                                    saveState = true
-                                }
-
-                                launchSingleTop = true
-                                restoreState = true
-                            }
-                        },
+                        onClick = { navigateTo("list") },
                         icon = {
                             Icon(
                                 Icons.Default.List,
@@ -193,7 +170,15 @@ fun MainApp(timeSheetViewModel: TimeSheetViewModel) {
                         timeSheetViewModel = timeSheetViewModel,
                         navigateTo = { uid -> navigateToTracker((uid)) })
                 }
-                composable("create") { TrackerForm(timeSheetViewModel = timeSheetViewModel) }
+                composable("create") {
+                    TrackerForm(
+                        timeSheetViewModel = timeSheetViewModel,
+                        navigateToGroupForm = { navigateTo("create/group") },
+                        navigateToTrackerForm = { navigateTo("create/tracker") }
+                    )
+                }
+                composable("create/tracker") { CreateTracker() }
+                composable("create/group") { CreateGroup() }
                 composable(
                     "tracker/{uid}",
                     arguments = listOf(navArgument("uid") { type = NavType.IntType })

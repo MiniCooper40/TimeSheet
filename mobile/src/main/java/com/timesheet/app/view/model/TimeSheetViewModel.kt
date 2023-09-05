@@ -16,6 +16,9 @@ import com.timesheet.app.data.dao.TrackedTimesDao
 import com.timesheet.app.data.entity.TimeTracker
 import com.timesheet.app.data.entity.TrackedTime
 import com.timesheet.app.application.MyApplication
+import com.timesheet.app.data.entity.GroupWithTrackers
+import com.timesheet.app.data.entity.TrackerGroup
+import com.timesheet.app.data.entity.TrackerGroupItem
 import com.timesheet.app.view.data.TimeSheetUiState
 import com.timesheet.app.view.data.TimeTrackerUiState
 import kotlinx.coroutines.flow.Flow
@@ -37,6 +40,9 @@ class TimeSheetViewModel(
     private lateinit var currentTrackerFlow: Flow<TimeTrackerUiState>
 //    private lateinit var currentTrackerFlow: MutableStateFlow<TimeTrackerUiState>
 
+    private val _trackerGroups: MutableStateFlow<List<GroupWithTrackers>> = MutableStateFlow(listOf())
+    val trackerGroups = _trackerGroups.asStateFlow()
+
     init {
         updateState()
     }
@@ -49,17 +55,21 @@ class TimeSheetViewModel(
                 )
             )
         }.also { currentTrackerFlow = it }
-//        this.currentTrackerFlow = MutableStateFlow(TimeTrackerUiState())
-//
-//        return MutableStateFlow(TimeTrackerUiState()).also {flow->
-//            viewModelScope.launch {
-//                flow.value = TimeTrackerUiState(
-//                    timeTrackerDao.getTrackedTimesByUid(uid)
-//                )
-//                currentTracker = timeTrackerDao.selectByUid(uid)
-//                currentTrackerFlow = flow
-//            }
-//        }
+    }
+
+    fun addGroupWithTrackers(group: TrackerGroup, trackers: List<TimeTracker>) {
+        viewModelScope.launch {
+            val groupUid = timeTrackerDao.insert(group)
+
+            trackers.forEach { tracker ->
+                timeTrackerDao.insert(
+                    TrackerGroupItem(
+                        groupUid = groupUid.toInt(),
+                        trackerUid = tracker.uid
+                    )
+                )
+            }
+        }
     }
 
 
@@ -68,7 +78,14 @@ class TimeSheetViewModel(
             _timeTrackers.value = TimeSheetUiState(
                 timeTrackerDao.selectAll()
             )
+
+            _trackerGroups.value = timeTrackerDao.getTrackerGroupsWithMembers()
         }
+    }
+
+    fun createGroup(group: TrackerGroup) {
+
+        viewModelScope
     }
 
     fun createTracker(context: Context, tracker: TimeTracker) {

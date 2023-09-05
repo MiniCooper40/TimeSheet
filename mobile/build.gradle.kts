@@ -99,5 +99,7 @@ dependencies {
     implementation("androidx.compose.material3:material3-window-size-class:1.1.1")
     implementation("androidx.datastore:datastore-preferences:1.0.0")
 
+    implementation ("io.mhssn:colorpicker:1.0.0")
+
     wearApp(project(":wear"))
 }
