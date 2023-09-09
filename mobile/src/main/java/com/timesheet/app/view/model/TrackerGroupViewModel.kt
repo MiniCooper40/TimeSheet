@@ -52,9 +52,12 @@ class TrackerGroupViewModel(
             val endTime = currentTime.withHour(23).withMinute(59).withSecond(59)
             val startTime = currentTime.minusWeeks(1).withHour(0).withMinute(0).withSecond(0)
 
-            val chartData = timeTrackerRepository.timeTrackedBetween(startTime, endTime, getTrackerUids())
+            val trackerUids = getTrackerUids()
+            println("tracker uids before $trackerUids")
 
-            println(chartData)
+            val chartData = timeTrackerRepository.timeTrackedBetween(startTime, endTime, trackerUids)
+
+            println("tracker uids after ${chartData.tracked.map { it.timeTracker.uid }}")
             _trackerChartData.value = chartData
         }
     }

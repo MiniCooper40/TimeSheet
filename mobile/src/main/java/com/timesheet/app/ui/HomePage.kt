@@ -51,7 +51,7 @@ fun GroupPreview(groupWithTrackers: GroupWithTrackers, onClick: () -> Unit) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             LabeledEntry(group.title) {
-                MiniTrackerChipFlowRow(trackers)
+                MiniTrackerChipFlowRow(trackers, elevation = 0.dp)
             }
         }
     }

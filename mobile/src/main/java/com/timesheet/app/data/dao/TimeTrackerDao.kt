@@ -30,6 +30,12 @@ interface TimeTrackerDao {
     @Update
     suspend fun update(timeTracker: TimeTracker)
 
+    @Update
+    suspend fun update(trackerGroup: TrackerGroup)
+
+    @Query("DELETE FROM trackergroupitem WHERE group_uid = :groupUid AND tracker_uid IN (:trackerUids) ")
+    suspend fun removeTrackersForGroup(groupUid: Int, trackerUids: List<Int>)
+
     @Query("SELECT * FROM time_tracker WHERE uid = :uid")
     suspend fun selectByUid(uid: Int): TimeTracker
 

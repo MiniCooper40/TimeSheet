@@ -59,6 +59,8 @@ import com.timesheet.app.ui.LabeledEntry
 import com.timesheet.app.ui.Section
 import com.timesheet.app.ui.TimeSheetPopup
 import com.timesheet.app.view.model.TimeSheetViewModel
+import com.timesheet.app.view.model.TimeTrackerViewModel
+import com.timesheet.app.view.model.TrackerGroupViewModel
 import io.mhssn.colorpicker.ColorPicker
 import io.mhssn.colorpicker.ColorPickerType
 
@@ -162,6 +164,7 @@ data class TrackerFormData(
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun TrackerForm(
+    formTitle: String = "Create tracker",
     default: TrackerFormData = TrackerFormData(),
     maxTitleLength: Int = 20,
     maxDescriptionLength: Int = 250,
@@ -183,7 +186,7 @@ fun TrackerForm(
             .padding(20.dp)
     ) {
         Form(
-            title = "Create tracker",
+            title = formTitle,
             onSubmit = {
                 onSubmit(
                     TrackerFormData(
@@ -389,6 +392,8 @@ fun GroupForm(
     onSubmit: (GroupFormData) -> Unit
 ) {
 
+    Log.v("DEFAULT", default.toString())
+
 
     var popup: PopupType? by remember { mutableStateOf(null) }
 
@@ -508,5 +513,78 @@ fun CreateGroup(onComplete: () -> Unit) {
         )
 
         onComplete()
+    }
+}
+
+fun TrackerGroup.toFormDataWithTrackers(trackers: List<TimeTracker>): GroupFormData {
+    return GroupFormData(
+        title = this.title,
+        description = this.description ?: "",
+        trackerIds = trackers.map { it.uid },
+        color = Color(this.color)
+    )
+}
+@Composable
+fun EditGroup(groupUid: Int, onComplete: () -> Unit) {
+    val timeSheetViewModel: TimeSheetViewModel = viewModel(factory = TimeSheetViewModel.Factory)
+
+    val uiState by timeSheetViewModel.timeTrackers.collectAsState()
+    val trackers = uiState.trackers
+
+    val groupViewModel: TrackerGroupViewModel = viewModel(factory = TrackerGroupViewModel.factoryFor(groupUid))
+    val groupWithTrackers by groupViewModel.trackerGroup.collectAsState()
+    val group = groupWithTrackers.group
+    val groupsTrackers = groupWithTrackers.trackers
+
+    Log.v("GROUP EDIT", group.toString())
+
+    val defaultFormData = group.toFormDataWithTrackers(groupsTrackers)
+
+    if(group.uid != 0) {
+        GroupForm(
+            default = defaultFormData,
+            trackers = trackers
+        ) { form ->
+            val trackersInGroup = trackers.filter { form.trackerIds.contains(it.uid) }
+            timeSheetViewModel.updateGroupWithTrackers(
+                group.copy(
+                    title = form.title,
+                    description = form.description,
+                    color = form.color.toArgb()
+                ),
+                trackersInGroup
+            )
+            onComplete()
+        }
+    }
+}
+
+@Composable
+fun EditTracker(trackerUid: Int, onComplete: () -> Unit) {
+
+    val timeSheetViewModel: TimeSheetViewModel = viewModel(factory = TimeSheetViewModel.Factory)
+    val trackers by timeSheetViewModel.timeTrackers.collectAsState()
+
+    trackers.trackers.firstOrNull { it.uid == trackerUid }?.let { tracker ->
+
+        val trackerFormData = TrackerFormData(
+            color = Color(tracker.color),
+            title = tracker.title,
+            description = tracker.description ?: ""
+        )
+
+        TrackerForm(
+            "Edit tracker",
+            trackerFormData
+        ) { form ->
+            timeSheetViewModel.updateTracker(
+                tracker.copy(
+                    title = form.title,
+                    description = form.description,
+                    color = form.color.toArgb()
+                )
+            )
+            onComplete()
+        }
     }
 }

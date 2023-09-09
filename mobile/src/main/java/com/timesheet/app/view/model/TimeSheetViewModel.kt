@@ -25,6 +25,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 
@@ -69,6 +70,36 @@ class TimeSheetViewModel(
                     )
                 )
             }
+        }
+    }
+
+    fun updateTracker(tracker: TimeTracker) = viewModelScope.launch { timeTrackerDao.update(tracker) }
+
+    fun updateGroupWithTrackers(updatedGroup: TrackerGroup, updatedTrackers: List<TimeTracker>) {
+        viewModelScope.launch {
+            val groupUid = updatedGroup.uid
+
+            val groupWithTrackers = timeTrackerDao.getTrackerGroupByGroupUid(groupUid)
+            val group = groupWithTrackers.group
+            val trackers = groupWithTrackers.trackers
+
+            timeTrackerDao.update(updatedGroup)
+
+            val existingTrackerUids = trackers.map { it.uid }
+            val updatedTrackerUids = updatedTrackers.map { it.uid }
+            val trackersToRemove = existingTrackerUids.filter { !updatedTrackerUids.contains(it) }
+
+            timeTrackerDao.removeTrackersForGroup(updatedGroup.uid, trackersToRemove)
+            val trackersToAdd = updatedTrackerUids.filter { !existingTrackerUids.contains(it) }
+            trackersToAdd.forEach {
+                timeTrackerDao.insert(
+                    TrackerGroupItem(
+                        groupUid = groupUid,
+                        trackerUid = it
+                    )
+                )
+            }
+
         }
     }
 

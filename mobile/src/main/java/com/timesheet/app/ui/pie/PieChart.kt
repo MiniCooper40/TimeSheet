@@ -54,9 +54,9 @@ fun PieChart(
 
     fun updateSelectedPieSlice(angle: Float) {
 
-        Log.v("START ANGLE", angle.toString())
-        data.forEach { Log.v("DATA", it.toString()) }
-        Log.v("DATA VALUES", data.size.toString())
+//        Log.v("START ANGLE", angle.toString())
+//        data.forEach { Log.v("DATA", it.toString()) }
+//        Log.v("DATA VALUES", data.size.toString())
 
         var currentSum = 0L
         data.asReversed().forEach {
@@ -80,7 +80,7 @@ fun PieChart(
                 .height(with(LocalDensity.current) { chartSize.toDp() })
                 .pointerInput(data) {
                     detectTapGestures {
-                        Log.v("CLick", "click at $it")
+//                        Log.v("CLick", "click at $it")
                         val width = size.width
                         val radius = width / 2
                         val strokeWidth = 20.dp.toPx()
@@ -91,8 +91,8 @@ fun PieChart(
                         val strokeStart = radius - strokeWidth
 
                         val clickDistance = it - canvasCenter.toOffset()
-
-                        Log.v("Click distance", clickDistance.toString())
+//
+//                        Log.v("Click distance", clickDistance.toString())
 
                         val distance = clickDistance.getDistance()
                         val circleCoverage = (1.5 * Math.PI - atan2(
@@ -101,7 +101,7 @@ fun PieChart(
                         ) / (2 * Math.PI) * 360f)
 
                         if (distance < strokeEnd && distance > strokeStart) {
-                            Log.v("Click", "Valid click")
+//                            Log.v("Click", "Valid click")
                             updateSelectedPieSlice(
                                 if (circleCoverage < 0) circleCoverage.toFloat() + 360f else circleCoverage.toFloat()
                             )
@@ -124,8 +124,8 @@ fun PieChart(
 
                 drawArc(
                     color = chartData.color,
-                    startAngle = startAngle,
-                    sweepAngle = sweepAngle,
+                    startAngle = startAngle + 1,
+                    sweepAngle = sweepAngle - 1,
                     useCenter = false,
                     topLeft = Offset(strokeWidth / 2, strokeWidth / 2),
                     size = Size(width - strokeWidth, width - strokeWidth),
@@ -145,7 +145,7 @@ fun PieChart(
         }
     }
 
-    data.forEach { Log.v("DATArrr", it.toString()) }
+//    data.forEach { Log.v("DATArrr", it.toString()) }
 }
 
 data class PieChartSlice(

@@ -20,7 +20,11 @@ class TimeTrackerRepository(
         val startTimeMillis = startDate.toEpochSecond() * 1000
         val endTimeMillis = endDate.toEpochSecond() * 1000
 
+        Log.v("TRACKER UIDS", trackerIds.toString())
+
         val trackedTimes = trackedTimeDao.trackedTimesInWindowForIds(startTimeMillis, endTimeMillis, trackerIds)
+
+        Log.v("TRACKED UIDS AFTER QUERY", trackedTimes.map { it.trackerUid }.toString())
 
         val trackedDurations: MutableMap<Int, Duration> = mutableMapOf()
 
