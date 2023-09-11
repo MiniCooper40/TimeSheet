@@ -12,10 +12,13 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.Divider
 import androidx.compose.material.DropdownMenu
+import androidx.compose.material.Icon
+import androidx.compose.material.IconButton
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Surface
 import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -78,9 +81,26 @@ data class IconDetails(
     val tint: Color = Grey
 )
 
+@Composable
+fun Banner(title: String, content: @Composable () -> Unit) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Black),
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+            modifier = Modifier.padding(bottom = 20.dp, top = 8.dp)
+        ) {
+            Text(title, style = MaterialTheme.typography.h2.copy(textAlign = TextAlign.Center), color = White)
+            content()
+        }
+    }
+}
 
 @Composable
-fun TrackerDetails(uid: Int, context: Context = LocalContext.current) {
+fun TrackerDetails(uid: Int, editTracker: () -> Unit, context: Context = LocalContext.current) {
 
         val timeTrackerViewModel: TimeTrackerViewModel = viewModel(factory = TimeTrackerViewModel.factoryFor(uid))
         val timeTrackersObj by timeTrackerViewModel.timeTrackers.collectAsState()
@@ -98,20 +118,15 @@ fun TrackerDetails(uid: Int, context: Context = LocalContext.current) {
             modifier = Modifier
                 .verticalScroll(scrollState),
         ) {
-            Surface(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(Black),
-            ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
-                    modifier = Modifier.padding(bottom = 20.dp, top = 8.dp)
-                ) {
-                    Text(timeTracker.title, style = MaterialTheme.typography.h2.copy(textAlign = TextAlign.Center), color = White)
-                    Stopwatch(timeTracker = timeTracker) {
-                        timeTrackerViewModel.updateTrackerStartTime(context, timeTracker)
-                    }
+            Banner(timeTracker.title) {
+                Stopwatch(timeTracker = timeTracker) {
+                    timeTrackerViewModel.updateTrackerStartTime(context, timeTracker)
+                }
+                IconButton(onClick = editTracker) {
+                    Icon(
+                        Icons.Default.Edit,
+                        "Edit"
+                    )
                 }
             }
             Spacer(modifier = Modifier.size(20.dp))
@@ -119,13 +134,13 @@ fun TrackerDetails(uid: Int, context: Context = LocalContext.current) {
                 modifier = Modifier.padding(20.dp),
                 verticalArrangement = Arrangement.spacedBy(20.dp)
             ){
-                Section("Weekly comparison") {
+                Section(title = "Weekly comparison") {
                     TrackedTimeDailyChart(timeTrackerViewModel.chartModel) {
                         timeTrackerViewModel.weeklyComparisonFor(it)
                     }
                 }
                 Divider()
-                Section("Monthly heatmap") {
+                Section(title = "Monthly heatmap") {
                     HeatMap(
                         heatMapState = heatMapState
                     ) {

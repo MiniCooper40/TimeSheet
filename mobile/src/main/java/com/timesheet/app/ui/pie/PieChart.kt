@@ -6,9 +6,12 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.material.MaterialTheme
@@ -31,13 +34,17 @@ import androidx.compose.ui.text.ExperimentalTextApi
 import androidx.compose.ui.unit.center
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.toOffset
+import com.timesheet.app.ui.Circle
 import kotlin.math.atan2
 
 @OptIn(ExperimentalTextApi::class)
 @Composable
-fun PieChart(originalData: List<PieChartSlice>) {
+fun PieChart(
+    originalData: List<PieChartSlice>,
+    fillMaxWidth: Float
+) {
 
-    val data = originalData
+    val data = originalData.sortedBy { it.data }
     val dataSum: Long = data.map { it.data }.sum()
 
     var chartSize by remember { mutableStateOf(0f) }
@@ -47,9 +54,9 @@ fun PieChart(originalData: List<PieChartSlice>) {
 
     fun updateSelectedPieSlice(angle: Float) {
 
-        Log.v("START ANGLE", angle.toString())
-        data.forEach { Log.v("DATA", it.toString()) }
-        Log.v("DATA VALUES", data.size.toString())
+//        Log.v("START ANGLE", angle.toString())
+//        data.forEach { Log.v("DATA", it.toString()) }
+//        Log.v("DATA VALUES", data.size.toString())
 
         var currentSum = 0L
         data.asReversed().forEach {
@@ -63,7 +70,7 @@ fun PieChart(originalData: List<PieChartSlice>) {
 
     Box(
         modifier = Modifier
-            .fillMaxWidth()
+            .fillMaxWidth(fillMaxWidth)
             .wrapContentHeight(),
         contentAlignment = Alignment.Center,
     ) {
@@ -73,7 +80,7 @@ fun PieChart(originalData: List<PieChartSlice>) {
                 .height(with(LocalDensity.current) { chartSize.toDp() })
                 .pointerInput(data) {
                     detectTapGestures {
-                        Log.v("CLick", "click at $it")
+//                        Log.v("CLick", "click at $it")
                         val width = size.width
                         val radius = width / 2
                         val strokeWidth = 20.dp.toPx()
@@ -84,8 +91,8 @@ fun PieChart(originalData: List<PieChartSlice>) {
                         val strokeStart = radius - strokeWidth
 
                         val clickDistance = it - canvasCenter.toOffset()
-
-                        Log.v("Click distance", clickDistance.toString())
+//
+//                        Log.v("Click distance", clickDistance.toString())
 
                         val distance = clickDistance.getDistance()
                         val circleCoverage = (1.5 * Math.PI - atan2(
@@ -94,7 +101,7 @@ fun PieChart(originalData: List<PieChartSlice>) {
                         ) / (2 * Math.PI) * 360f)
 
                         if (distance < strokeEnd && distance > strokeStart) {
-                            Log.v("Click", "Valid click")
+//                            Log.v("Click", "Valid click")
                             updateSelectedPieSlice(
                                 if (circleCoverage < 0) circleCoverage.toFloat() + 360f else circleCoverage.toFloat()
                             )
@@ -113,16 +120,16 @@ fun PieChart(originalData: List<PieChartSlice>) {
                 val sweepAngle = chartData.data.asAngle()
 
                 val adjustedStrokeWidth =
-                    if (chartData.uid == (selected?.uid ?: -1)) strokeWidth / 2 else strokeWidth
+                    if (chartData.uid == (selected?.uid ?: -1)) strokeWidth*1.3f else strokeWidth
 
                 drawArc(
                     color = chartData.color,
-                    startAngle = startAngle + 9,
-                    sweepAngle = sweepAngle - 9,
+                    startAngle = startAngle + 1,
+                    sweepAngle = sweepAngle - 1,
                     useCenter = false,
                     topLeft = Offset(strokeWidth / 2, strokeWidth / 2),
                     size = Size(width - strokeWidth, width - strokeWidth),
-                    style = Stroke(adjustedStrokeWidth, cap = StrokeCap.Round),
+                    style = Stroke(adjustedStrokeWidth),
                 )
 
 
@@ -138,7 +145,7 @@ fun PieChart(originalData: List<PieChartSlice>) {
         }
     }
 
-    data.forEach { Log.v("DATArrr", it.toString()) }
+//    data.forEach { Log.v("DATArrr", it.toString()) }
 }
 
 data class PieChartSlice(
@@ -149,23 +156,21 @@ data class PieChartSlice(
     val content: @Composable () -> Unit
 )
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun Legend(items: List<Pair<Color, String>>) {
-    Column(
-        horizontalAlignment = Alignment.Start,
+    FlowRow(
         modifier = Modifier.fillMaxWidth(0.9f)
     ) {
         items.map {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                modifier = Modifier
+                    .padding(4.dp)
             ) {
-                Canvas(
-                    modifier = Modifier.size(10.dp)
-                ) {
-                    drawCircle(it.first)
-                }
-                Text(it.second)
+                Circle(10.dp, it.first)
+                Text(it.second, style = MaterialTheme.typography.caption)
             }
         }
     }

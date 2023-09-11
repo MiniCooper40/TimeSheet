@@ -7,8 +7,9 @@ import androidx.lifecycle.createSavedStateHandle
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.CreationExtras
 import com.timesheet.app.data.repository.TimeTrackerRepository
-import com.timesheet.app.ui.table.TableSortType
+import com.timesheet.app.ui.table.ChartDataSorter
 import com.timesheet.app.application.MyApplication
+import com.timesheet.app.data.dao.TimeTrackerDao
 import com.timesheet.app.view.data.TimeTrackerChartData
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -16,36 +17,13 @@ import kotlinx.coroutines.launch
 import java.time.LocalDate
 
 class HomePageViewModel(
+    val timeTrackerDao: TimeTrackerDao,
     val timeTrackerRepository: TimeTrackerRepository
 ): ViewModel() {
 
-    private val _lastWeekData = MutableStateFlow(TimeTrackerChartData(listOf())) //MutableStateFlow<Map<TimeTracker, Duration>>(mapOf())
-    val lastWeekData = _lastWeekData.asStateFlow()
 
-    init {
-        updateLastWeekData()
-    }
 
-    private fun updateLastWeekData() {
-        viewModelScope.launch {
-            val today = LocalDate.now().plusDays(2)
-            val weekAgo = today.minusWeeks(3)
-            _lastWeekData.value = timeTrackerRepository.timeTrackedBetween(weekAgo, today)
-        }
-    }
 
-    fun sortWeeklyDataByTime() {
-        val currentData = _lastWeekData.value
-
-        val newData = currentData.tracked.sortedByDescending { it.duration }
-
-        Log.v("SORTED", currentData.tracked.toString())
-        _lastWeekData.value = TimeTrackerChartData(newData)
-    }
-
-    fun sortWeeklyBy(tableSortType: TableSortType) {
-        _lastWeekData.value = tableSortType.sort(_lastWeekData.value)
-    }
     companion object {
 
         val Factory: ViewModelProvider.Factory = object : ViewModelProvider.Factory {
@@ -60,6 +38,7 @@ class HomePageViewModel(
                 val savedStateHandle = extras.createSavedStateHandle()
 
                 return HomePageViewModel(
+                    (application as MyApplication).timeTrackerDao,
                     TimeTrackerRepository(
                         (application as MyApplication).timeTrackerDao,
                         (application as MyApplication).trackedTimeDao

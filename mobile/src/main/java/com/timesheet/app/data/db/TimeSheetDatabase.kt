@@ -9,8 +9,10 @@ import com.timesheet.app.data.dao.TrackedTimeDao
 import com.timesheet.app.data.dao.TrackedTimesDao
 import com.timesheet.app.data.entity.TimeTracker
 import com.timesheet.app.data.entity.TrackedTime
+import com.timesheet.app.data.entity.TrackerGroup
+import com.timesheet.app.data.entity.TrackerGroupItem
 
-@Database(entities = arrayOf(TimeTracker::class, TrackedTime::class), version=12)
+@Database(entities = [TimeTracker::class, TrackedTime::class, TrackerGroup::class, TrackerGroupItem::class], version=17)
 abstract class TimeSheetDatabase: RoomDatabase() {
 
     abstract fun timeTrackerDao(): TimeTrackerDao

@@ -9,17 +9,22 @@ import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
+import java.time.ZonedDateTime
 
 class TimeTrackerRepository(
     private val timeTrackerDao: TimeTrackerDao,
     private val trackedTimeDao: TrackedTimeDao
 ) {
 
-    suspend fun timeTrackedBetween(startDate: LocalDate, endDate: LocalDate): TimeTrackerChartData {
-        val startTimeMillis = startDate.atStartOfDay().toInstant(ZoneOffset.UTC).toEpochMilli()
-        val endTimeMillis = endDate.atStartOfDay().toInstant(ZoneOffset.UTC).toEpochMilli()
+    suspend fun timeTrackedBetween(startDate: ZonedDateTime, endDate: ZonedDateTime, trackerIds: List<Int>): TimeTrackerChartData {
+        val startTimeMillis = startDate.toEpochSecond() * 1000
+        val endTimeMillis = endDate.toEpochSecond() * 1000
 
-        val trackedTimes = trackedTimeDao.trackedTimesInWindow(startTimeMillis, endTimeMillis)
+        Log.v("TRACKER UIDS", trackerIds.toString())
+
+        val trackedTimes = trackedTimeDao.trackedTimesInWindowForIds(startTimeMillis, endTimeMillis, trackerIds)
+
+        Log.v("TRACKED UIDS AFTER QUERY", trackedTimes.map { it.trackerUid }.toString())
 
         val trackedDurations: MutableMap<Int, Duration> = mutableMapOf()
 
@@ -51,7 +56,13 @@ class TimeTrackerRepository(
 
         val tracked = trackedDurations.mapKeys { timeTrackerDao.selectByUid(it.key) }
 
+        Log.v("TRACKED", tracked.toList().toTypedArray().contentDeepToString())
+
+
+
         val totalTimeTracked = tracked.toList().sumOf { it.second.toMillis() }
+
+        Log.v("TOTAL TRACKED TIME", totalTimeTracked.toString())
 
         return TimeTrackerChartData(
             tracked.map { track ->
@@ -62,7 +73,6 @@ class TimeTrackerRepository(
                     sessions = trackedTimes.count { it.trackerUid == track.key.uid }
                 )
             }
-                .filter { it.duration.toMillis() > 60000 }
         )
     }
 }
