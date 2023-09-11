@@ -283,9 +283,13 @@ class TimeTrackerViewModel(
 
     private fun updateState() {
         viewModelScope.launch {
-            _trackedTimes.value = TimeTrackerUiState(
-                timeTrackerDao.getTrackedTimesByUid(uid)
-            )
+//            _trackedTimes.value = TimeTrackerUiState(
+//                timeTrackerDao.getTrackedTimesByUid(uid)
+//            )
+//
+            timeTrackerDao.getTrackedTimesByUid(uid)?.let {
+                _trackedTimes.value = TimeTrackerUiState(it)
+            }
 
             //val currentTime = currentLocalDate()
 //            val currentTime = ZonedDateTime.now()
@@ -368,7 +372,8 @@ class TimeTrackerViewModel(
                 //println("earliest time instant $earliestTimeInstant")
 
                 val trackedInLastWeek =
-                    trackedTimes.trackedTimes.filter { it.endTime > earliestTimeInstant.toEpochMilli() && it.startTime != 0L }
+                    trackedTimes?.trackedTimes?.filter { it.endTime > earliestTimeInstant.toEpochMilli() && it.startTime != 0L }
+                        ?: listOf()
 
                 val times = mutableListOf<Day>()
                 for (i in 1..days) {
@@ -421,121 +426,6 @@ class TimeTrackerViewModel(
         }
 
         return dailyTimes.await()
-    }
-
-    fun dailyTimesInPastWeek() {
-
-        viewModelScope.launch {
-            val durationPairs = mutableListOf<Pair<Int, Duration>>()
-
-            runBlocking {
-
-                val trackedTimes = timeTrackerDao.getTrackedTimesByUid(uid)
-                val days = 7
-
-                val currentDate = LocalDate.now().atStartOfDay()
-                val earliestDay = currentDate.minusDays((days-1).toLong())
-
-                val startOfDayInstant = currentDate.toInstant(ZoneOffset.UTC)
-                var earliestTimeInstant = earliestDay.toInstant(ZoneOffset.UTC)
-
-                val trackedInLastWeek =
-                    trackedTimes.trackedTimes.filter { it.endTime > earliestTimeInstant.toEpochMilli() && it.startTime != 0L }
-                val zeroStartTimes = trackedTimes.trackedTimes.filter { it.startTime == 0L }
-
-                val times = mutableListOf<Day>()
-                for (i in 1..days) {
-                    val day = Day(
-                        startTime = earliestTimeInstant.toEpochMilli(),
-                        endTime = earliestTimeInstant.toEpochMilli() + millisecondsInDay
-                    )
-                    times.add(day)
-                    earliestTimeInstant = earliestTimeInstant.plusMillis(millisecondsInDay)
-                }
-
-//    Log.v("times", times.toString())
-//    Log.v("zeroStartTimes", zeroStartTimes.toString())
-
-                val durations = times.map { Duration.ZERO }.toMutableList()
-
-                trackedInLastWeek.forEachIndexed { _, tracked ->
-                    var start = tracked.startTime
-                    var end = tracked.endTime
-
-                    var startInstant = Instant.ofEpochMilli(start)
-                    var endInstant = Instant.ofEpochMilli(end)
-//        Log.v("startInstant", startInstant.toString())
-//        Log.v("endInstant", endInstant.toString())
-
-//        Log.v("start", start.toString())
-//        Log.v("end", end.toString())
-
-                    times.forEachIndexed { dayIndex, day ->
-                        val initial = start.coerceAtLeast(day.startTime)
-                        val final = end.coerceAtMost(day.endTime)
-
-                        var dayStartInstant = Instant.ofEpochMilli(day.startTime)
-                        var dayEndInstant = Instant.ofEpochMilli(day.endTime)
-//            Log.v("dayStartInstant", dayStartInstant.toString())
-//            Log.v("dayEndInstant", dayEndInstant.toString())
-
-//            Log.v("day start", day.startTime.toString())
-//            Log.v("day end", day.endTime.toString())
-
-                        if (start >= day.startTime && end <= day.endTime) {
-                            //Log.v("1", (end-start).toString())
-                            durations[dayIndex] = durations[dayIndex].plusMillis(end - start)
-                        } else if (start >= day.startTime && start <= day.endTime && end >= day.endTime) {
-                            //Log.v("2", (end-start).toString())
-                            durations[dayIndex] = durations[dayIndex].plusMillis(final - start)
-                        } else if (start <= day.startTime && end <= day.endTime && end >= day.startTime) {
-//                Log.v("3", (end-day.startTime).toString())
-                            durations[dayIndex] = durations[dayIndex].plusMillis(end - day.startTime)
-                        } else if (start <= day.startTime && end >= day.endTime) {
-                            Log.v("4", (day.endTime - day.startTime).toString())
-                            durations[dayIndex] =
-                                durations[dayIndex].plusMillis(day.endTime - day.startTime)
-                            //            }
-                        }
-                    }
-
-//    Log.v("earliest day", earliestDay.toString())
-
-//    Log.v("pairs", durationPairs.toString())
-//                    Thread.sleep(1000L)
-//                    Log.v("emited", "emited")
-
-                }
-                val durationSum = durations.sumOf { it.toMillis() }
-                val timeSum = trackedInLastWeek.sumOf { it.endTime - it.startTime }
-
-//    Log.v("durationSum", durationSum.toString() + ", " + (durationSum/60000).toString())
-//    Log.v("timeSum", timeSum.toString() + ", " + (timeSum/60000).toString())
-
-                val durationsString = durations.map { it.toMinutes().toString() }
-
-//    Log.v("DURATIONS",durations.toString())
-
-                var startDay = earliestDay.dayOfWeek.value
-
-                durations.forEach {
-//                        durationPairs.add(
-//                            (if (startDay > 7) startDay - 7 else startDay) to it
-//                        )
-                    val day = if (startDay > 7) startDay - 7 else startDay
-                    durationPairs.add(day to it)
-//                        durationMap.put(
-//                            day,
-//                            durationMap.get(day)?.plus(it) ?: it
-//                        )
-                    startDay++
-                }
-                weeklyDurations = durationPairs
-//                weeklyDurations = durationMap.map { it.key to it.value }
-//                Log.v("Got weekly durations", weeklyDurations.toString())
-            }
-
-        }
     }
     companion object {
 

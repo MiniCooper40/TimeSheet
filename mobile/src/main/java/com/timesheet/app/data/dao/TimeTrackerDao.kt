@@ -1,6 +1,7 @@
 package com.timesheet.app.data.dao
 
 import androidx.room.Dao
+import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
@@ -36,15 +37,37 @@ interface TimeTrackerDao {
     @Query("DELETE FROM trackergroupitem WHERE group_uid = :groupUid AND tracker_uid IN (:trackerUids) ")
     suspend fun removeTrackersForGroup(groupUid: Int, trackerUids: List<Int>)
 
+    @Query("DELETE FROM trackergroupitem WHERE tracker_uid = :trackerUid ")
+    suspend fun removeGroupAssociationsForTracker(trackerUid: Int)
+
+    @Delete
+    suspend fun deleteTracker(timeTracker: TimeTracker)
+
+    @Delete
+    suspend fun deleteGroup(group: TrackerGroup)
+
+    @Query("DELETE FROM trackergroup WHERE uid = :groupUid")
+    suspend fun deleteGroupByUid(groupUid: Int)
+
+    @Query("DELETE FROM trackergroupitem WHERE group_uid = :groupUid ")
+    suspend fun removeTrackerAssociationsForGroup(groupUid: Int)
+
+    @Query("DELETE FROM time_tracker WHERE uid = :timeTrackerUid")
+    suspend fun deleteTrackerByUid(timeTrackerUid: Int)
+
+    @Query("DELETE FROM tracked_time WHERE tracker_uid = :timeTrackerUid")
+    suspend fun deleteTrackedTimeForTrackerUid(timeTrackerUid: Int)
+
     @Query("SELECT * FROM time_tracker WHERE uid = :uid")
     suspend fun selectByUid(uid: Int): TimeTracker
+
 
     @Query("UPDATE time_tracker SET start_time=:startTime WHERE uid=:uid")
     suspend fun updateStartTimeByUid(uid: Int, startTime: Long)
 
     @Transaction
     @Query("SELECT * FROM time_tracker WHERE uid=:uid")
-    suspend fun getTrackedTimesByUid(uid: Int): TrackedTimes
+    suspend fun getTrackedTimesByUid(uid: Int): TrackedTimes?
 
     @Transaction
     @Query("SELECT * FROM TrackerGroup")

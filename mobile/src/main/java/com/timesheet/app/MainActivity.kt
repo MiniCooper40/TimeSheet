@@ -1,9 +1,11 @@
 package com.timesheet.app.presentation
 
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.BottomAppBar
 import androidx.compose.material.BottomNavigationItem
@@ -22,8 +24,11 @@ import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.navigation.NavAction
+import androidx.navigation.NavArgument
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavOptions
@@ -48,6 +53,7 @@ import com.timesheet.app.ui.table.EditGroup
 import com.timesheet.app.ui.table.EditTracker
 import com.timesheet.app.ui.table.TrackerForm
 import com.timesheet.app.view.model.TimeSheetViewModel
+import java.util.Arrays
 
 
 class MainActivity : ComponentActivity() {
@@ -73,32 +79,23 @@ fun MainApp(timeSheetViewModel: TimeSheetViewModel) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
 
+    val uiState by timeSheetViewModel.timeTrackers.collectAsState()
+    val trackers = uiState.trackers
+    val groupsWithTrackers by timeSheetViewModel.trackerGroups.collectAsState()
+
     fun navigateTo(route: String) {
         navController.navigate(route) {
             popUpTo(navController.graph.findStartDestination().id) {
-                saveState = true
+                saveState = false
                 this.inclusive = true
             }
 
             launchSingleTop = true
-            restoreState = true
+            restoreState = false
         }
     }
 
     fun navigateToTracker(uid: Int) {
-//        navController.navigate(
-//            "tracker/$uid",
-//            navOptions = NavOptions
-//                .Builder()
-//                .setExitAnim(0)
-//                .setExitAnim(0)
-//                .setPopEnterAnim(0)
-//                .setPopExitAnim(0)
-//                .setRestoreState(true)
-//                .setLaunchSingleTop(true)
-//                .setPopUpTo()
-//                .build()
-//        )
         navController.navigate("tracker/$uid") {
             popUpTo(navController.graph.findStartDestination().id) {
                 saveState = false
@@ -111,18 +108,6 @@ fun MainApp(timeSheetViewModel: TimeSheetViewModel) {
     }
 
     fun navigateToGroup(uid: Int) {
-//        navController.navigate(
-//            "group/$uid",
-//            navOptions = NavOptions
-//                .Builder()
-//                .setExitAnim(0)
-//                .setExitAnim(0)
-//                .setPopEnterAnim(0)
-//                .setPopExitAnim(0)
-//                .setRestoreState(true)
-//                .setLaunchSingleTop(true)
-//                .build()
-//        )
         navController.navigate("group/$uid") {
             popUpTo(navController.graph.findStartDestination().id) {
                 saveState = false
@@ -178,18 +163,30 @@ fun MainApp(timeSheetViewModel: TimeSheetViewModel) {
             bottomBar = {
                 BottomAppBar(
                     backgroundColor = wearColorPalette.primary,
-                    contentColor = wearColorPalette.onPrimary
+                    contentColor = wearColorPalette.onPrimary,
+                    modifier = Modifier
+                        .background(wearColorPalette.primary)
                 ) {
                     BottomNavigationItem(
                         selected = currentDestination?.hierarchy?.any { it.route == "home" } == true,
                         onClick = { navigateTo("home") },
                         icon = {
                             Icon(Icons.Default.Home, "Home button")
-                        }
+                        },
+                        modifier = Modifier
+                            .background(wearColorPalette.primary)
                     )
 
-                    FloatingActionButton(onClick = { navigateTo("create") }) {
-                        Icon(Icons.Default.Add, "Add button")
+                    FloatingActionButton(
+                        onClick = { navigateTo("create") },
+                        modifier = Modifier
+                            .background(wearColorPalette.primary)
+                    ) {
+                        Icon(
+                            Icons.Default.Add,
+                            "Add button",
+                            tint = wearColorPalette.primary
+                        )
                     }
 
                     if (navBackStackEntry != null) {
@@ -202,41 +199,60 @@ fun MainApp(timeSheetViewModel: TimeSheetViewModel) {
                                     "List button",
                                     tint = wearColorPalette.onPrimary
                                 )
-                            }
+                            },
+                            modifier = Modifier
+                                .background(wearColorPalette.primary)
                         )
                     }
                 }
             }
         ) { it ->
-            NavHost(navController, startDestination = "home", Modifier.padding(it)) {
+            NavHost(navController, startDestination = "create", Modifier.padding(it)) {
                 composable("home") {
                     HomePage(
-                        timeSheetViewModel = timeSheetViewModel,
-                        navigateTo = { navigateToGroup(it) }
+                        groups = groupsWithTrackers,
+                        navigateTo = { navigateToGroup(it) },
+                        deleteGroups = { timeSheetViewModel.deleteGroupsByUid(it) }
                     )
                 }
-                composable("list") {
+                composable("list") { backStack ->
                     DisplayTrackers(
+                        trackers = trackers,
                         timeSheetViewModel = timeSheetViewModel,
-                        navigateTo = { uid -> navigateToTracker((uid)) })
+                        navigateTo = { uid -> navigateToTracker((uid)) },
+                        createTrackerWithIds = {
+                            navigateTo (
+                                "group/create-selected/${it.joinToString(",")}"
+                            )
+                        },
+                        deleteTrackers = { timeSheetViewModel.deleteTrackersByUid(it) }
+                    )
                 }
                 composable("create") {
                     TrackerForm(
-                        timeSheetViewModel = timeSheetViewModel,
                         navigateToGroupForm = { navigateTo("group/create") },
-                        navigateToTrackerForm = { navigateTo("tracker/create") },
-                        navigateToGroup = { navigateToGroup(it) }
+                        navigateToTrackerForm = { navigateTo("tracker/create") }
                     )
                 }
-                composable("tracker/create") { CreateTracker { goBack() } }
-                composable("group/create") { CreateGroup { goBack() } }
+                composable("tracker/create") { CreateTracker(timeSheetViewModel) { goBack() } }
+                composable("group/create") { CreateGroup(timeSheetViewModel) { goBack() } }
+                composable(
+                    "group/create-selected/{trackerUids}",
+                    arguments = listOf(navArgument("trackerUids") { type = NavType.StringType })
+                ) {
+//                    Log.v("Arguments?", navController.previousBackStackEntry?.arguments?.getIntArray("trackerUids")?.toString() ?: "Noo")
+
+                    it.arguments?.getString("trackerUids")?.let { stringifiedTrackerUids ->
+                        val trackerUids = stringifiedTrackerUids.split(",").map { it.toIntOrNull() }.filterNotNull().toIntArray()
+                        CreateGroup(timeSheetViewModel, trackerUids) { goBack() }
+                    }
+                }
                 composable(
                     "group/edit/{uid}",
                     arguments = listOf(navArgument("uid") { type = NavType.IntType })
                 ) {
                     it.arguments?.getInt("uid")?.let { uid ->
-                        EditGroup(uid) {
-                            navController.popBackStack()
+                        EditGroup(timeSheetViewModel, trackers, uid) {
                             navigateTo("home")
                         }
                     }

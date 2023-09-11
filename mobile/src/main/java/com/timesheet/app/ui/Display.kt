@@ -1,21 +1,28 @@
 package com.timesheet.app.ui
 
+import android.graphics.drawable.Icon
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.AlertDialog
 import androidx.compose.material.Card
 import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
+import androidx.compose.material.TextButton
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -121,6 +128,79 @@ fun VerticalScrollArea(content: @Composable () -> Unit) {
     ) {
         content()
     }
+}
+
+@Composable
+fun AlertDialogButton(
+    text: String,
+    onClick: () -> Unit
+) {
+    TextButton(onClick = onClick) {
+        Text(text, color = wearColorPalette.background)
+    }
+}
+
+@Composable
+fun SelectionBar(
+    actions: List<Pair<ImageVector, () -> Unit>>,
+    textButton: Pair<String, () -> Unit>? = null
+) {
+    Box(
+        contentAlignment = Alignment.BottomCenter,
+        modifier = Modifier.fillMaxSize()
+    ) {
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(wearColorPalette.primary),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            textButton?.let { (text, action) ->
+                TextButton(onClick = action) {
+                    Text(text, color = wearColorPalette.onPrimary)
+                }
+            }
+            Row {
+                actions.map { (icon, action) ->
+                    IconButton(onClick = action) {
+                        Icon(
+                            icon,
+                            "Icon",
+                            tint = wearColorPalette.onPrimary
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun TimeSheetAlert(
+    onDismissRequest: () -> Unit,
+    onConfirm: () -> Unit,
+    title: String = "Alert",
+    confirmLabel: String = "Confirm",
+    dismissLabel: String = "Dismiss",
+    content: @Composable () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismissRequest,
+        confirmButton = {
+            AlertDialogButton(confirmLabel) {
+                onConfirm()
+            }
+        },
+        dismissButton = {
+            AlertDialogButton(dismissLabel) {
+                onDismissRequest()
+            }
+        },
+        text = content,
+        title = { Text(title) }
+    )
 }
 
 @Composable

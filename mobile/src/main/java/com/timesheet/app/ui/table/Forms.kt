@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Log
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.layout.Arrangement
@@ -242,9 +243,7 @@ fun TrackerForm(
 }
 
 @Composable
-fun CreateTracker(context: Context = LocalContext.current, onComplete: () -> Unit) {
-
-    val timeSheetViewModel: TimeSheetViewModel = viewModel(factory = TimeSheetViewModel.Factory)
+fun CreateTracker(timeSheetViewModel: TimeSheetViewModel, context: Context = LocalContext.current, onComplete: () -> Unit) {
 
     TrackerForm { form ->
         timeSheetViewModel.createTracker(
@@ -267,7 +266,7 @@ data class GroupFormData(
 )
 
 @Composable
-fun MiniTrackerChip(modifier: Modifier = Modifier, tracker: TimeTracker, content: @Composable (() -> Unit)? = null) {
+fun MiniTrackerChip(modifier: Modifier = Modifier, tracker: TimeTracker? = null, content: @Composable (() -> Unit)? = null) {
 
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -275,8 +274,10 @@ fun MiniTrackerChip(modifier: Modifier = Modifier, tracker: TimeTracker, content
         modifier = modifier
     ) {
         content?.let { it() }
-        Text(tracker.title)
-        Circle(size = 14.dp, color = Color(tracker.color))
+        tracker?.let {
+            Text(it.title)
+            Circle(size = 14.dp, color = Color(it.color))
+        }
     }
 }
 
@@ -488,15 +489,18 @@ fun GroupForm(
 }
 
 @Composable
-fun CreateGroup(onComplete: () -> Unit) {
-
-    val timeSheetViewModel: TimeSheetViewModel = viewModel(factory = TimeSheetViewModel.Factory)
+fun CreateGroup(timeSheetViewModel: TimeSheetViewModel, defaultTrackerUids: IntArray = intArrayOf(), onComplete: () -> Unit) {
 
     val uiState by timeSheetViewModel.timeTrackers.collectAsState()
     val trackers = uiState.trackers
 
+    val default = GroupFormData(
+        trackerIds = defaultTrackerUids.toList()
+    )
+
     GroupForm(
-        trackers = trackers
+        trackers = trackers,
+        default = default
     ) { form ->
         Log.v("GROUP CREATED", form.toString())
         val group = TrackerGroup(
@@ -525,11 +529,7 @@ fun TrackerGroup.toFormDataWithTrackers(trackers: List<TimeTracker>): GroupFormD
     )
 }
 @Composable
-fun EditGroup(groupUid: Int, onComplete: () -> Unit) {
-    val timeSheetViewModel: TimeSheetViewModel = viewModel(factory = TimeSheetViewModel.Factory)
-
-    val uiState by timeSheetViewModel.timeTrackers.collectAsState()
-    val trackers = uiState.trackers
+fun EditGroup(timeSheetViewModel: TimeSheetViewModel, trackers: List<TimeTracker>, groupUid: Int, onComplete: () -> Unit) {
 
     val groupViewModel: TrackerGroupViewModel = viewModel(factory = TrackerGroupViewModel.factoryFor(groupUid))
     val groupWithTrackers by groupViewModel.trackerGroup.collectAsState()

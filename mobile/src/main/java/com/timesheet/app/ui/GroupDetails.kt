@@ -7,7 +7,11 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -44,20 +48,30 @@ import com.timesheet.app.view.model.TrackerGroupViewModel
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun MiniTrackerChipFlowRow(
+    modifier: Modifier =  Modifier,
     trackers: List<TimeTracker>,
     elevation: Dp = 3.dp,
+    maxTrackers: Int = Int.MAX_VALUE,
     navigateToTracker: ((Int) -> Unit)? = null
 ) {
-    FlowRow {
-        trackers.map { tracker ->
+
+    val adjustedMaxTrackers = if (maxTrackers > trackers.size) trackers.size else maxTrackers
+
+    val chipModifier = modifier
+        .padding(all = 4.dp)
+
+    FlowRow(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceEvenly
+    ) {
+        trackers.take(adjustedMaxTrackers).map { tracker ->
             Surface(
                 elevation = elevation,
                 color = wearColorPalette.background,
                 modifier = Modifier.padding(5.dp)
             ) {
                 MiniTrackerChip(
-                    modifier = Modifier
-                        .padding(all = 4.dp)
+                    modifier = chipModifier
                         .clickable {
                             navigateToTracker?.let {
                                 it(tracker.uid)
@@ -67,7 +81,20 @@ fun MiniTrackerChipFlowRow(
                 )
             }
         }
-
+        if (adjustedMaxTrackers < trackers.size) {
+            val numTrackersLeft = trackers.size - adjustedMaxTrackers
+            Surface(
+                elevation = elevation,
+                color = wearColorPalette.background,
+                modifier = Modifier.padding(5.dp)
+            ) {
+                MiniTrackerChip(
+                    content = {
+                        Text("$numTrackersLeft other${if(numTrackersLeft == 1) "" else "s"}...")
+                    }
+                )
+            }
+        }
     }
 }
 
@@ -76,10 +103,11 @@ fun SectionColumn(content: @Composable () -> Unit) {
     Column(
         modifier = Modifier
             .padding(20.dp)
-            .fillMaxWidth(),
+            .fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         content()
+        Spacer(modifier = Modifier.fillMaxWidth().height(30.dp))
     }
 }
 
@@ -94,7 +122,7 @@ fun GroupDetails(uid: Int, navigateToTracker: (Int) -> Unit, editGroup: () -> Un
     val trackers = groupWithTrackers.trackers
     val group = groupWithTrackers.group
 
-    Log.v("CHART DATA", trackerChartData.tracked.map{it.timeTracker.title}.toString())
+    Log.v("CHART DATA", trackerChartData.tracked.map { it.timeTracker.title }.toString())
     Log.v("TRACKERS", trackers.map { it.title }.toString())
 
     Column(
@@ -112,7 +140,7 @@ fun GroupDetails(uid: Int, navigateToTracker: (Int) -> Unit, editGroup: () -> Un
         }
         SectionColumn {
             Section(title = "Trackers in group") {
-                MiniTrackerChipFlowRow(trackers) { navigateToTracker(it) }
+                MiniTrackerChipFlowRow(trackers = trackers) { navigateToTracker(it) }
             }
             Section(title = "Table") {
                 Table(
@@ -136,7 +164,7 @@ fun GroupDetails(uid: Int, navigateToTracker: (Int) -> Unit, editGroup: () -> Un
                             data = value,
                             title = tracker.title,
                             uid = tracker.uid
-                        ){
+                        ) {
                             Text(tracker.title)
                             Text(
                                 toCompressedTimeStamp(metrics.duration.toMillis()),
